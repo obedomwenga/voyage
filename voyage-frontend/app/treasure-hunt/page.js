@@ -1,25 +1,39 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import Navbar from '../../components/NavBar';
-import Footer from '../../components/LandingPage/Footer';
+import Footer from '../../components/Landingpage/Footer';
+import WelcomeModal from '../../components/WelcomeModal';
 import Image from 'next/image';
-import { ethers } from 'ethers';
+import { ethers } from 'ethers'; // Correct import
 import contractABI from '../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json'; // Adjust the path as necessary
 
+const clues = [
+  {
+    clue: "Fill in the missing letters to complete the word.",
+    url: "/Clue.jpg"
+  },
+  {
+    clue: "Decode the sentence",
+    url: "/Clue.jpg"
+  },
+  // Add more clues as needed
+];
+
 const TreasureHunt = () => {
-  const [clue, setClue] = useState("");
+  const [currentClueIndex, setCurrentClueIndex] = useState(0);
   const [guess, setGuess] = useState("");
   const [message, setMessage] = useState("");
+  const [showWelcome, setShowWelcome] = useState(true);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
 
-  const contractAddress = "0x3305384F687d803372190B29A79F3Ff00D4eEb14"; // Replace with your actual contract address
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; // Using environment variable for contract address
 
   useEffect(() => {
-    mapboxgl.accessToken = 'pk.eyJ1Ijoib2JlZG9td2VuZ2EiLCJhIjoiY2x3ZmlvajJyMXFnbjJqcGxmMnVpcXU2NyJ9.xVSqRYlKN5P6gGF2H5WGOw'; // Replace with your Mapbox access token
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN; // Using environment variable for Mapbox access token
     new mapboxgl.Map({
       container: 'map', // container ID
       style: 'mapbox://styles/mapbox/streets-v11', // style URL
@@ -30,7 +44,7 @@ const TreasureHunt = () => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
       setProvider(provider);
       const signer = provider.getSigner();
       setSigner(signer);
@@ -40,7 +54,7 @@ const TreasureHunt = () => {
 
         // Fetch the current clue
         contract.activeHuntInfo().then((huntInfo) => {
-          setClue(huntInfo.treasureHunt.clue);
+          setCurrentClueIndex(0); // Using the first clue for now
         });
       }
     }
@@ -54,7 +68,7 @@ const TreasureHunt = () => {
     }
 
     try {
-      const transaction = await contract.submitAnswer(guess, { value: ethers.parseUnits("0.1", "ether") }); // Adjust FTM fee if necessary
+      const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") }); // Adjust ETH fee if necessary
       await transaction.wait();
       setMessage("Congratulations! You found the treasure!");
     } catch (error) {
@@ -68,15 +82,17 @@ const TreasureHunt = () => {
   return (
     <div>
       <Navbar />
-      <div className="h-screen">
-        <div id="map" className="h-full w-full relative"></div>
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+      <div className="h-screen relative">
+        <div id="map" className="h-full w-full"></div>
         <div className="absolute top-0 right-0 p-4">
           <button className="bg-blue-500 px-4 py-2 rounded">Start Hunt</button>
         </div>
-        <div className="absolute top-0 left-0 p-4 bg-white bg-opacity-75 rounded shadow-md">
-          <h2 className="text-lg font-bold mb-2">Clue:</h2>
-          <p className="mb-4">{clue}</p>
-          <Image src="/Clue.jpg" alt="Treasure Hunt Clue" width={320} height={240} />
+        <div className="absolute top-0 left-0 p-4 bg-black bg-opacity-75 rounded shadow-md">
+          <h2 className="text-lg font-bold mb-2 text-white">Treasure Hunt</h2>
+          <p className="mb-4 text-white">Check out the riddle below!</p>
+          <p className="mb-4 text-white">Reward: 500 VOY</p>
+          <Image src={clues[currentClueIndex].url} alt="Treasure Hunt Clue" width={320} height={240} />
           <form onSubmit={handleGuessSubmit}>
             <input
               type="text"
@@ -87,10 +103,10 @@ const TreasureHunt = () => {
             />
             <button type="submit" className="bg-blue-500 px-4 py-2 rounded w-full">Submit</button>
           </form>
-          {message && <p className="mt-4">{message}</p>}
+          {message && <p className="mt-4 text-white">{message}</p>}
         </div>
       </div>
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 };
