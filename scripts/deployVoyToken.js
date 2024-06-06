@@ -5,7 +5,7 @@ async function main() {
     console.log("Deploying VOY token with the account:", deployer.address);
 
     const initialSupply = ethers.utils.parseEther("100000000"); // 100 million tokens
-    const Token = await ethers.getContractFactory("VoyToken");
+    const Token = await ethers.getContractFactory("VoyToken"); // Ensure this matches your contract name
     const token = await Token.deploy(initialSupply);
 
     await token.deployed();

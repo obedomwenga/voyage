@@ -9,18 +9,6 @@ import Image from 'next/image';
 import { ethers } from 'ethers'; // Correct import
 import contractABI from '../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json'; // Adjust the path as necessary
 
-const clues = [
-  {
-    clue: "Fill in the missing letters to complete the word.",
-    url: "/Clue.jpg"
-  },
-  {
-    clue: "Decode the sentence",
-    url: "/Clue.jpg"
-  },
-  // Add more clues as needed
-];
-
 const TreasureHunt = () => {
   const [currentClueIndex, setCurrentClueIndex] = useState(0);
   const [guess, setGuess] = useState("");
@@ -29,8 +17,20 @@ const TreasureHunt = () => {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
+  const [clues, setClues] = useState([]);
 
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; // Using environment variable for contract address
+
+  useEffect(() => {
+    // Fetch clues from the JSON file
+    fetch('/clues.json')
+      .then(response => response.json())
+      .then(data => {
+        setClues(data);
+        console.log("Clues fetched successfully:", data);
+      })
+      .catch(error => console.error("Error fetching clues:", error));
+  }, []);
 
   useEffect(() => {
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN; // Using environment variable for Mapbox access token
@@ -92,7 +92,12 @@ const TreasureHunt = () => {
           <h2 className="text-lg font-bold mb-2 text-white">Treasure Hunt</h2>
           <p className="mb-4 text-white">Check out the riddle below!</p>
           <p className="mb-4 text-white">Reward: 500 VOY</p>
-          <Image src={clues[currentClueIndex].url} alt="Treasure Hunt Clue" width={320} height={240} />
+          {clues.length > 0 && (
+            <>
+              <Image src={clues[currentClueIndex].URL} alt="Treasure Hunt Clue" width={320} height={240} />
+              <p className="text-white">{clues[currentClueIndex].Clue}</p>
+            </>
+          )}
           <form onSubmit={handleGuessSubmit}>
             <input
               type="text"

@@ -12,25 +12,41 @@ const Navbar = () => {
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
+        // Request account access if needed
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
+        console.log("Address:", address); // Debugging log
         setAccount(address);
 
-        // Fetch balances
+        // Fetch ETH balance
         const ethBalance = await provider.getBalance(address);
+        console.log("ETH Balance:", ethBalance.toString()); // Debugging log
+        const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18);
 
-        // Replace this with the actual contract call to fetch VOY balance
-        const voyContract = new ethers.Contract(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, ['function balanceOf(address owner) view returns (uint256)'], signer);
+        // Fetch VOY balance from the contract
+        const voyContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
+          ['function balanceOf(address owner) view returns (uint256)'],
+          signer
+        );
         const voyBalance = await voyContract.balanceOf(address);
+        console.log("VOY Balance:", voyBalance.toString()); // Debugging log
+        const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18);
 
         setBalance({
-          eth: ethers.utils.formatUnits(ethBalance, 18),
-          voy: ethers.utils.formatUnits(voyBalance, 18),
+          eth: formattedEthBalance,
+          voy: formattedVoyBalance,
         });
       } catch (error) {
         console.error("Error connecting wallet:", error);
+        if (error.code === -32000) {
+          alert("Cannot estimate gas; transaction may fail or may require manual gas limit.");
+        } else {
+          alert("An error occurred while connecting the wallet.");
+        }
       }
     } else {
       alert("MetaMask not detected. Please install MetaMask.");
