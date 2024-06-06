@@ -90,7 +90,7 @@ const TreasureHunt = () => {
           {message && <p className="mt-4">{message}</p>}
         </div>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };
