@@ -6,34 +6,34 @@ import Navbar from '../../components/NavBar';
 import Footer from '../../components/Landingpage/Footer';
 import WelcomeModal from '../../components/WelcomeModal';
 import Image from 'next/image';
-import { ethers } from 'ethers'; // Correct import
-import contractABI from '../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json'; // Adjust the path as necessary
+import { ethers } from 'ethers';
+import contractABI from '../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json';
 
 const TreasureHunt = () => {
-  const [currentClueIndex, setCurrentClueIndex] = useState(0);
+  const [currentClueIndex, setCurrentClueIndex] = useState(null); // null means no hunt selected
   const [guess, setGuess] = useState("");
   const [message, setMessage] = useState("");
   const [showWelcome, setShowWelcome] = useState(true);
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
-  const [clues, setClues] = useState([]);
+  const [hunts, setHunts] = useState([]); // Store all hunts here
 
-  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; // Using environment variable for contract address
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
   useEffect(() => {
-    // Fetch clues from the JSON file
+    // Fetch hunts from the JSON file
     fetch('/clues.json')
       .then(response => response.json())
       .then(data => {
-        setClues(data);
-        console.log("Clues fetched successfully:", data);
+        setHunts(data);
+        console.log("Hunts fetched successfully:", data);
       })
-      .catch(error => console.error("Error fetching clues:", error));
+      .catch(error => console.error("Error fetching hunts:", error));
   }, []);
 
   useEffect(() => {
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN; // Using environment variable for Mapbox access token
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
     new mapboxgl.Map({
       container: 'map', // container ID
       style: 'mapbox://styles/mapbox/streets-v11', // style URL
@@ -51,11 +51,6 @@ const TreasureHunt = () => {
       if (contractABI.abi.length > 0) {
         const contract = new ethers.Contract(contractAddress, contractABI.abi, signer);
         setContract(contract);
-
-        // Fetch the current clue
-        contract.activeHuntInfo().then((huntInfo) => {
-          setCurrentClueIndex(0); // Using the first clue for now
-        });
       }
     }
   }, []);
@@ -68,7 +63,7 @@ const TreasureHunt = () => {
     }
 
     try {
-      const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") }); // Adjust ETH fee if necessary
+      const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") });
       await transaction.wait();
       setMessage("Congratulations! You found the treasure!");
     } catch (error) {
@@ -77,6 +72,10 @@ const TreasureHunt = () => {
     }
 
     setGuess("");
+  };
+
+  const handleHuntClick = (index) => {
+    setCurrentClueIndex(index);
   };
 
   return (
@@ -89,26 +88,41 @@ const TreasureHunt = () => {
           <button className="bg-blue-500 px-4 py-2 rounded">Start Hunt</button>
         </div>
         <div className="absolute top-0 left-0 p-4 bg-black bg-opacity-75 rounded shadow-md">
-          <h2 className="text-lg font-bold mb-2 text-white">Treasure Hunt</h2>
-          <p className="mb-4 text-white">Check out the riddle below!</p>
-          <p className="mb-4 text-white">Reward: 500 VOY</p>
-          {clues.length > 0 && (
+          {currentClueIndex === null ? (
             <>
-              <Image src={clues[currentClueIndex].URL} alt="Treasure Hunt Clue" width={320} height={240} />
-              <p className="text-white">{clues[currentClueIndex].Clue}</p>
+              <h2 className="text-lg font-bold mb-2 text-white">Active Hunts</h2>
+              {hunts.length > 0 ? (
+                hunts.map((hunt, index) => (
+                  <div key={index} className="mb-4 cursor-pointer text-white" onClick={() => handleHuntClick(index)}>
+                    <h3>{hunt.PlaceID}</h3>
+                    <p>{hunt.Clue}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-white">No Active Hunts</p>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold mb-2 text-white">Treasure Hunt</h2>
+              <p className="mb-4 text-white">Check out the riddle below!</p>
+              <p className="mb-4 text-white">Reward: {hunts[currentClueIndex].Rewards}</p>
+              <Image src={hunts[currentClueIndex].URL} alt="Treasure Hunt Clue" width={320} height={240} />
+              <p className="text-white">{hunts[currentClueIndex].Clue}</p>
+              <form onSubmit={handleGuessSubmit}>
+                <input
+                  type="text"
+                  value={guess}
+                  onChange={(e) => setGuess(e.target.value)}
+                  placeholder="Enter your guess"
+                  className="px-4 py-2 border rounded mb-4 w-full"
+                />
+                <button type="submit" className="bg-blue-500 px-4 py-2 rounded w-full">Submit</button>
+              </form>
+              {message && <p className="mt-4 text-white">{message}</p>}
+              <button onClick={() => setCurrentClueIndex(null)} className="mt-4 text-white">Back to hunts</button>
             </>
           )}
-          <form onSubmit={handleGuessSubmit}>
-            <input
-              type="text"
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              placeholder="Enter your guess"
-              className="px-4 py-2 border rounded mb-4 w-full"
-            />
-            <button type="submit" className="bg-blue-500 px-4 py-2 rounded w-full">Submit</button>
-          </form>
-          {message && <p className="mt-4 text-white">{message}</p>}
         </div>
       </div>
       <Footer />
