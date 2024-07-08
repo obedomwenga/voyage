@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
-import Navbar from '../../components/NavBar';
+import Navbar from '../../components/Navbar';
 import Footer from '../../components/Landingpage/Footer';
 import WelcomeModal from '../../components/WelcomeModal';
 import Image from 'next/image';
 import { ethers } from 'ethers';
-import contractABI from '../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json';
+import contractABI from '../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json';
 
 const TreasureHunt = () => {
   const [currentClueIndex, setCurrentClueIndex] = useState(null); // null means no hunt selected
@@ -17,30 +17,34 @@ const TreasureHunt = () => {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
-  const [hunts, setHunts] = useState([]); // Store all hunts here
+  const [hunts, setHunts] = useState([]);
 
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 
   useEffect(() => {
-    // Fetch hunts from the JSON file
     fetch('/clues.json')
       .then(response => response.json())
-      .then(data => {
-        setHunts(data);
-        console.log("Hunts fetched successfully:", data);
-      })
+      .then(data => setHunts(data))
       .catch(error => console.error("Error fetching hunts:", error));
   }, []);
 
   useEffect(() => {
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    new mapboxgl.Map({
-      container: 'map', // container ID
-      style: 'mapbox://styles/mapbox/streets-v11', // style URL
-      center: [0, 0], // starting position [lng, lat]
-      zoom: 2, // starting zoom
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [0, 0],
+      zoom: 2,
     });
-  }, []);
+
+    hunts.forEach((hunt, index) => {
+      const marker = new mapboxgl.Marker()
+        .setLngLat([hunt.Coordinates.lng, hunt.Coordinates.lat])
+        .addTo(map)
+        .getElement()
+        .addEventListener('click', () => handleHuntClick(index));
+    });
+  }, [hunts]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.ethereum) {
@@ -53,7 +57,7 @@ const TreasureHunt = () => {
         setContract(contract);
       }
     }
-  }, []);
+  }, [contractAddress]);
 
   const handleGuessSubmit = async (e) => {
     e.preventDefault();
@@ -62,13 +66,18 @@ const TreasureHunt = () => {
       return;
     }
 
-    try {
-      const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") });
-      await transaction.wait();
-      setMessage("Congratulations! You found the treasure!");
-    } catch (error) {
-      console.error("Error submitting guess:", error);
-      setMessage("Incorrect answer or error occurred. Try again!");
+    const currentClue = hunts[currentClueIndex];
+    if (guess.toLowerCase() === currentClue.Answer.toLowerCase()) {
+      try {
+        const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") });
+        await transaction.wait();
+        setMessage(`Congratulations! You found the treasure and earned ${currentClue.Rewards}!`);
+      } catch (error) {
+        console.error("Error submitting guess:", error);
+        setMessage("Error occurred. Try again!");
+      }
+    } else {
+      setMessage("Incorrect answer. Try again!");
     }
 
     setGuess("");
@@ -84,10 +93,7 @@ const TreasureHunt = () => {
       {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       <div className="h-screen relative">
         <div id="map" className="h-full w-full"></div>
-        <div className="absolute top-0 right-0 p-4">
-          <button className="bg-blue-500 px-4 py-2 rounded">Start Hunt</button>
-        </div>
-        <div className="absolute top-0 left-0 p-4 bg-black bg-opacity-75 rounded shadow-md">
+        <div className="absolute top-0 left-0 p-4 bg-black bg-opacity-75 rounded shadow-md max-w-md w-full">
           {currentClueIndex === null ? (
             <>
               <h2 className="text-lg font-bold mb-2 text-white">Active Hunts</h2>

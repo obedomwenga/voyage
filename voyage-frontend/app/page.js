@@ -1,4 +1,4 @@
-import LandingNavbar from '../components/Landingpage/LandingNavbar';
+import LandingNavbar from '../components/Landingpage/LandingNavBar';
 import LandingPage from '../components/Landingpage/LandingPage';
 import InfoSection from '../components/Landingpage/InfoSection';
 import Footer from '../components/Landingpage/Footer';

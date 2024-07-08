@@ -4,36 +4,32 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import Image from 'next/image';
 import Link from 'next/link';
+import Drawer from './Drawer'; // Adjust the import path if needed
 
 const Navbar = () => {
   const [account, setAccount] = useState(null);
   const [balance, setBalance] = useState({ eth: 0, voy: 0 });
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
-        // Request account access if needed
         await window.ethereum.request({ method: 'eth_requestAccounts' });
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
-        console.log("Address:", address); // Debugging log
         setAccount(address);
 
-        // Fetch ETH balance
         const ethBalance = await provider.getBalance(address);
-        console.log("ETH Balance:", ethBalance.toString()); // Debugging log
         const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18);
 
-        // Fetch VOY balance from the contract
         const voyContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
           ['function balanceOf(address owner) view returns (uint256)'],
           signer
         );
         const voyBalance = await voyContract.balanceOf(address);
-        console.log("VOY Balance:", voyBalance.toString()); // Debugging log
         const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18);
 
         setBalance({
@@ -53,13 +49,22 @@ const Navbar = () => {
     }
   };
 
+  const toggleDrawer = () => {
+    setIsDrawerOpen(!isDrawerOpen);
+  };
+
   return (
-    <nav className="flex justify-between items-center p-4 bg-black text-white">
+    <nav className="flex justify-between items-center p-4 bg-black bg-opacity-30 text-white">
       <div className="text-lg font-bold flex items-center">
         <Image src="/voyage-logo.png" alt="Voyage" width={32} height={32} className="mr-2" />
         <Link href="/">Voyage</Link>
       </div>
-      <div className="flex items-center">
+      <div className="sm:hidden">
+        <button onClick={toggleDrawer} className="text-white">
+          &#9776; {/* Hamburger icon */}
+        </button>
+      </div>
+      <div className="hidden sm:flex items-center">
         <Link href="/#game-rules" className="mx-2">Game Rules & Tips</Link>
         {account ? (
           <div className="flex items-center space-x-2">
@@ -77,6 +82,7 @@ const Navbar = () => {
           <button onClick={connectWallet} className="bg-blue-500 px-4 py-2 rounded">Connect Wallet</button>
         )}
       </div>
+      <Drawer isOpen={isDrawerOpen} onClose={toggleDrawer} account={account} balance={balance} connectWallet={connectWallet} />
     </nav>
   );
 };
