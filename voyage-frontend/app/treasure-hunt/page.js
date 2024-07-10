@@ -8,6 +8,8 @@ import WelcomeModal from '../../components/WelcomeModal';
 import Image from 'next/image';
 import { ethers } from 'ethers';
 import contractABI from '../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json';
+import voyTokenABI from '../../artifacts/contracts/voyToken.sol/VoyToken.json'; // Ensure the correct import for the VOY token ABI
+import Confetti from 'react-confetti';
 
 const TreasureHunt = () => {
   const [currentClueIndex, setCurrentClueIndex] = useState(null); // null means no hunt selected
@@ -18,8 +20,12 @@ const TreasureHunt = () => {
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
   const [hunts, setHunts] = useState([]);
+  const [submissionCooldown, setSubmissionCooldown] = useState(false);
+  const [confetti, setConfetti] = useState(false);
+  const [voyContract, setVoyContract] = useState(null);
 
   const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+  const voyTokenAddress = process.env.NEXT_PUBLIC_VOY_TOKEN_ADDRESS; // Ensure this is in your .env file
 
   useEffect(() => {
     fetch('/clues.json')
@@ -52,12 +58,30 @@ const TreasureHunt = () => {
       setProvider(provider);
       const signer = provider.getSigner();
       setSigner(signer);
-      if (contractABI.abi.length > 0) {
+
+      if (contractAddress) {
         const contract = new ethers.Contract(contractAddress, contractABI.abi, signer);
         setContract(contract);
       }
+
+      if (voyTokenAddress) {
+        const voyContract = new ethers.Contract(voyTokenAddress, voyTokenABI.abi, signer);
+        setVoyContract(voyContract);
+      }
     }
-  }, [contractAddress]);
+  }, [contractAddress, voyTokenAddress]);
+
+  const checkVoyBalance = async () => {
+    if (!signer || !voyContract) return 0;
+    try {
+      const balance = await voyContract.balanceOf(await signer.getAddress());
+      return ethers.utils.formatUnits(balance, 18);
+    } catch (error) {
+      console.error("Error checking VOY balance:", error);
+      alert("Error checking balance.");
+      return 0;
+    }
+  };
 
   const handleGuessSubmit = async (e) => {
     e.preventDefault();
@@ -66,18 +90,31 @@ const TreasureHunt = () => {
       return;
     }
 
+    const voyBalance = await checkVoyBalance();
+
+    if (voyBalance < 5000) {
+      setMessage("You need at least 5000 VOY tokens to submit an answer.");
+      return;
+    }
+
+    if (submissionCooldown) {
+      setMessage("Please wait 5 seconds before submitting another answer.");
+      return;
+    }
+
+    setSubmissionCooldown(true);
+    setTimeout(() => setSubmissionCooldown(false), 5000);
+
     const currentClue = hunts[currentClueIndex];
-    if (guess.toLowerCase() === currentClue.Answer.toLowerCase()) {
-      try {
-        const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseUnits("0.1", "ether") });
-        await transaction.wait();
-        setMessage(`Congratulations! You found the treasure and earned ${currentClue.Rewards}!`);
-      } catch (error) {
-        console.error("Error submitting guess:", error);
-        setMessage("Error occurred. Try again!");
-      }
-    } else {
-      setMessage("Incorrect answer. Try again!");
+    try {
+      const transaction = await contract.submitAnswer(guess, { value: ethers.utils.parseEther("0.1") });
+      await transaction.wait();
+      setMessage(`Congratulations! You found the treasure and earned ${currentClue.Rewards}!`);
+      setConfetti(true);
+      showLocationOnMap(currentClue.Coordinates);
+    } catch (error) {
+      console.error("Error submitting guess:", error);
+      setMessage("Error occurred. Try again!");
     }
 
     setGuess("");
@@ -85,11 +122,27 @@ const TreasureHunt = () => {
 
   const handleHuntClick = (index) => {
     setCurrentClueIndex(index);
+    setMessage('');
+    setConfetti(false);
+  };
+
+  const showLocationOnMap = (coordinates) => {
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [coordinates.lng, coordinates.lat],
+      zoom: 10,
+    });
+
+    new mapboxgl.Marker()
+      .setLngLat([coordinates.lng, coordinates.lat])
+      .addTo(map);
   };
 
   return (
     <div>
-      <Navbar />
+      {confetti && <Confetti />}
+      <Navbar onWalletConnected={(address) => console.log(`Wallet connected: ${address}`)} />
       {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       <div className="h-screen relative">
         <div id="map" className="h-full w-full"></div>
@@ -113,7 +166,7 @@ const TreasureHunt = () => {
               <h2 className="text-lg font-bold mb-2 text-white">Treasure Hunt</h2>
               <p className="mb-4 text-white">Check out the riddle below!</p>
               <p className="mb-4 text-white">Reward: {hunts[currentClueIndex].Rewards}</p>
-              <Image src={hunts[currentClueIndex].URL} alt="Treasure Hunt Clue" width={320} height={240} />
+              <Image src={hunts[currentClueIndex].URL} alt="Treasure Hunt Clue" width={320} height={240} style={{ width: 'auto', height: 'auto' }} />
               <p className="text-white">{hunts[currentClueIndex].Clue}</p>
               <form onSubmit={handleGuessSubmit}>
                 <input

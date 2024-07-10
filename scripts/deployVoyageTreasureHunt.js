@@ -1,4 +1,6 @@
 const { ethers } = require("hardhat");
+const fs = require('fs');
+const path = require('path');
 
 async function main() {
     const [deployer] = await ethers.getSigners();
@@ -12,6 +14,24 @@ async function main() {
     await voyageTreasureHunt.deployed();
 
     console.log("VoyageTreasureHunt deployed to:", voyageTreasureHunt.address);
+
+    // Ensure the source artifact exists
+    const source = path.join(__dirname, '../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json');
+    if (!fs.existsSync(source)) {
+        throw new Error(`Artifact not found at ${source}`);
+    }
+
+    // Ensure the destination directory exists
+    const destinationDir = path.join(__dirname, '../../voyage-frontend/artifacts');
+    if (!fs.existsSync(destinationDir)) {
+        fs.mkdirSync(destinationDir, { recursive: true });
+    }
+
+    // Copy the artifact to the frontend directory
+    const destination = path.join(destinationDir, 'VoyageTreasureHunt.json');
+
+    fs.copyFileSync(source, destination);
+    console.log("Artifact copied to frontend directory");
 }
 
 main()

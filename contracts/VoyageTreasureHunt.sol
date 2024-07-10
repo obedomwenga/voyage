@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract VoyageTreasureHunt is Ownable {
@@ -35,7 +35,7 @@ contract VoyageTreasureHunt is Ownable {
     constructor(address voyTokenAddress) {
         voyToken = IERC20(voyTokenAddress);
         entryFeeVOY = 100 ether;
-        entryFeeFTM = 0.1 ether;
+        entryFeeFTM = 0.01 ether; // Adjusted for lower test fee
         answerSigner = 0xF550B7Ee011f974BcCB389aD2A76bbB5463a3495;
         feeCollector = payable(0x11157D586e425acf3604eEAdaaae7bb89dF70242);
     }
@@ -84,7 +84,7 @@ contract VoyageTreasureHunt is Ownable {
     function submitAnswer(string memory guess) external payable returns (bool) {
         require(msg.value == entryFeeFTM, "VoyageTreasureHunt: Incorrect FTM entry fee");
         feeCollector.transfer(msg.value);
-        require(voyToken.balanceOf(msg.sender) >= entryFeeVOY, "VoyageTreasureHunt: Insufficient VOY balance");
+        require(voyToken.balanceOf(msg.sender) >= 5000 ether, "VoyageTreasureHunt: Insufficient VOY balance");
 
         TreasureHunt storage treasureHunt = treasureHunts[activeHuntNonce];
         require(!treasureHunt.solved, "VoyageTreasureHunt: No active hunt");
@@ -96,16 +96,15 @@ contract VoyageTreasureHunt is Ownable {
         bool correct = signer == answerSigner;
 
         if (!correct) {
-            voyToken.transferFrom(msg.sender, feeCollector, entryFeeVOY);
-            emit IncorrectAnswer(treasureHunt.nonce, msg.sender, entryFeeVOY, treasureHunt.guessCount, guess);
+            voyToken.transferFrom(msg.sender, feeCollector, 100 ether);
+            emit IncorrectAnswer(treasureHunt.nonce, msg.sender, 100 ether, treasureHunt.guessCount, guess);
             return false;
         } else {
-            uint256 reward = treasureChest;
-            treasureChest = 0;
-            voyToken.transfer(msg.sender, reward);
+            voyToken.transferFrom(msg.sender, address(this), 5000 ether);  // Lock the stake
+            voyToken.transfer(msg.sender, 600 ether);  // Reward the user
             treasureHunt.solved = true;
             treasureHunt.winner = msg.sender;
-            emit TreasureHuntSolved(treasureHunt.nonce, msg.sender, reward, guess);
+            emit TreasureHuntSolved(treasureHunt.nonce, msg.sender, 600 ether, guess);
             return true;
         }
     }
@@ -117,6 +116,10 @@ contract VoyageTreasureHunt is Ownable {
 
     function huntInfo(uint256 nonce) external view returns (TreasureHunt memory) {
         return treasureHunts[nonce];
+    }
+
+    function voyBalanceOf(address account) external view returns (uint256) {
+        return voyToken.balanceOf(account);
     }
 
     function recoverSigner(bytes32 message, bytes memory sig) public pure returns (address) {

@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import Image from 'next/image';
 import Link from 'next/link';
 import Drawer from './Drawer'; // Adjust the import path if needed
+import voyTokenABI from '../../artifacts/contracts/voyToken.sol/VoyToken.json';  // Correct path for the ABI
 
 const Navbar = () => {
   const [account, setAccount] = useState(null);
@@ -25,8 +26,8 @@ const Navbar = () => {
         const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18);
 
         const voyContract = new ethers.Contract(
-          process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
-          ['function balanceOf(address owner) view returns (uint256)'],
+          process.env.NEXT_PUBLIC_VOY_TOKEN_ADDRESS,
+          voyTokenABI.abi,  // Use .abi to get the ABI from the JSON
           signer
         );
         const voyBalance = await voyContract.balanceOf(address);
