@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+
 /* globals.css */
 html, body {
     height: 100%;
