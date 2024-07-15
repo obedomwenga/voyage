@@ -7,6 +7,7 @@ import Footer from '../../components/Landingpage/Footer';
 import WelcomeModal from '../../components/Treasurehunt/WelcomeModal';
 import HuntList from '../../components/Treasurehunt/HuntList';
 import HuntDetail from '../../components/Treasurehunt/HuntDetails';
+import ResultPopup from '../../components/Treasurehunt/ResultPopup';
 import Confetti from 'react-confetti';
 
 // Dynamically import MapComponent with client-side rendering
@@ -22,6 +23,8 @@ const TreasureHunt = () => {
   const [hunts, setHunts] = useState([]);
   const [submissionCooldown, setSubmissionCooldown] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
     fetch('/clues.json')
@@ -35,7 +38,8 @@ const TreasureHunt = () => {
     if (currentClueIndex === null) return;
 
     if (submissionCooldown) {
-      setMessage("Please wait 5 seconds before submitting another answer.");
+      setPopupMessage("Please wait 5 seconds before submitting another answer.");
+      setIsPopupOpen(true);
       return;
     }
 
@@ -45,12 +49,14 @@ const TreasureHunt = () => {
     const currentClue = hunts[currentClueIndex];
 
     if (guess.toLowerCase() === currentClue.Answer.toLowerCase()) {
-      setMessage(`Congratulations! You found the treasure and earned ${currentClue.Rewards} VOY tokens!`);
+      setPopupMessage(`Congratulations! You got it right, ${currentClue.Rewards} VOY have been transferred to your wallet.`);
       setConfetti(true);
+      setTimeout(() => setConfetti(false), 5000);  // Stop confetti after 5 seconds
     } else {
-      setMessage("Incorrect guess. Try again!");
+      setPopupMessage("Incorrect guess. Try again!");
     }
 
+    setIsPopupOpen(true);
     setGuess("");
   };
 
@@ -58,6 +64,10 @@ const TreasureHunt = () => {
     setCurrentClueIndex(index);
     setMessage('');
     setConfetti(false);
+  };
+
+  const handleClosePopup = () => {
+    setIsPopupOpen(false);
   };
 
   return (
@@ -83,6 +93,7 @@ const TreasureHunt = () => {
         </div>
       </div>
       <Footer />
+      <ResultPopup isOpen={isPopupOpen} onClose={handleClosePopup} message={popupMessage} />
     </div>
   );
 };
