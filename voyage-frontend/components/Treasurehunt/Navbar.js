@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
@@ -33,20 +33,25 @@ const Navbar = () => {
         const voyBalance = await voyContract.balanceOf(address);
         const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18);
 
-        setBalance({
-          eth: formattedEthBalance,
-          voy: formattedVoyBalance,
-        });
-      } catch (error) {
-        console.error("Error connecting wallet:", error);
-        if (error.code === -32000) {
-          alert("Cannot estimate gas; transaction may fail or may require manual gas limit.");
+                setBalance({
+                    tbnb: formattedTbnbBalance,
+                    voy: formattedVoyBalance,
+                })
+            } catch (error) {
+                console.error("Error connecting wallet:", error)
+                if (error.code === -32000) {
+                    alert(
+                        "Cannot estimate gas; transaction may fail or may require manual gas limit."
+                    )
+                } else {
+                    alert("An error occurred while connecting the wallet.")
+                }
+            } finally {
+                setLoading(false) // End loading
+            }
         } else {
-          alert("An error occurred while connecting the wallet.");
+            alert("MetaMask not detected. Please install MetaMask.")
         }
-      }
-    } else {
-      alert("MetaMask not detected. Please install MetaMask.");
     }
   };
 
