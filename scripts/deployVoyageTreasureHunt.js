@@ -7,15 +7,10 @@ async function main() {
     console.log("Deploying VoyageTreasureHunt with the account:", deployer.address);
 
     const voyTokenAddress = "0xadcAff8B7CbA30c0eAc4b9AbFD5426b855eb66be"; // Deployed VOY token address
-
-    // Define initial values for the contract
-    const rewardAmount = ethers.utils.parseEther("1000");
-    const participationFee = ethers.utils.parseEther("10");
-    const minimumBalance = ethers.utils.parseEther("500");
-    const huntInterval = 60 * 60 * 24; // 1 day
+    const feeCollectorAddress = "0x77e6372bFce29F13c7a96b31816EE7E506253706"; // Replace with your fee collector address
 
     const VoyageTreasureHunt = await ethers.getContractFactory("VoyageTreasureHunt");
-    const voyageTreasureHunt = await VoyageTreasureHunt.deploy(voyTokenAddress, rewardAmount, participationFee, minimumBalance, huntInterval);
+    const voyageTreasureHunt = await VoyageTreasureHunt.deploy(voyTokenAddress, feeCollectorAddress);
 
     await voyageTreasureHunt.deployed();
 
@@ -35,7 +30,6 @@ async function main() {
 
     // Copy the artifact to the frontend directory
     const destination = path.join(destinationDir, 'VoyageTreasureHunt.json');
-
     fs.copyFileSync(source, destination);
     console.log("Artifact copied to frontend directory");
 }

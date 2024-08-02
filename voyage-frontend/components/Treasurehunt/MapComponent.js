@@ -1,9 +1,7 @@
-// components/Treasurehunt/MapComponent.js
-
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 
-const MapComponent = ({ hunts, currentClueIndex, handleHuntClick }) => {
+const MapComponent = ({ hunts, currentClueIndex, handleHuntClick, setGuessLocation, setShowConfirm }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
 
@@ -18,10 +16,16 @@ const MapComponent = ({ hunts, currentClueIndex, handleHuntClick }) => {
       zoom: 2,
     });
 
+    map.current.on('click', (e) => {
+      setGuessLocation(e.lngLat);
+      setShowConfirm(true);
+      new mapboxgl.Marker().setLngLat(e.lngLat).addTo(map.current);
+    });
+
     map.current.on('load', () => {
       console.log("Map loaded successfully");
     });
-  }, []);
+  }, [setGuessLocation, setShowConfirm]);
 
   useEffect(() => {
     if (!map.current) return;

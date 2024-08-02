@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract VoyageTreasureHunt is Ownable {
@@ -10,130 +10,106 @@ contract VoyageTreasureHunt is Ownable {
         string clue;
         string url;
         uint256 start;
-        bytes32 solutionHash; // Store the hash instead of signed answer
+        bytes signedAnswer;
         uint256 guessCount;
         bool solved;
         address winner;
-        uint256 rewardAmount;
     }
 
-    event TreasureHuntStarted(uint256 indexed nonce, uint256 reward, string clue, string url);
+    event TreasureHuntStarted(uint256 indexed nonce, uint256 reward, string clue, string url, bytes32 txHash);
     event TreasureHuntSolved(uint256 indexed nonce, address indexed solver, uint256 reward, string answer);
     event IncorrectAnswer(uint256 indexed nonce, address indexed guesser, uint256 feePaid, uint256 guessCount, string answer);
 
-    IERC20 public rewardToken;
-    uint256 public rewardAmount;
-    uint256 public participationFee;
-    uint256 public minimumBalance;
-    uint256 public huntInterval;
-    uint256 public nextHuntTime;
-    uint256 public currentHuntIndex;
+    uint256 public entryFeeVOY;
+    uint256 public treasureChest;
     address public answerSigner;
-    address payable public feeCollector;
+    address public feeCollector;
 
+    IERC20 public voyToken;
     uint256 public huntCount;
     uint256 public activeHuntNonce;
 
     mapping(uint256 => TreasureHunt) public treasureHunts;
-    mapping(address => uint256) public lastParticipation;
 
-    modifier canParticipate() {
-        require(block.timestamp >= nextHuntTime, "Hunt not started yet");
-        require(rewardToken.balanceOf(msg.sender) >= minimumBalance, "Insufficient VOY balance to participate");
-        require(!treasureHunts[activeHuntNonce].solved, "No active hunt");
-        _;
+    constructor(address voyTokenAddress, address feeCollectorAddress) {
+        voyToken = IERC20(voyTokenAddress);
+        entryFeeVOY = 100 ether;
+        answerSigner = 0x77e6372bFce29F13c7a96b31816EE7E506253706;
+        feeCollector = feeCollectorAddress;
     }
 
-    constructor(IERC20 _rewardToken, uint256 _rewardAmount, uint256 _participationFee, uint256 _minimumBalance, uint256 _huntInterval) {
-        rewardToken = _rewardToken;
-        rewardAmount = _rewardAmount;
-        participationFee = _participationFee;
-        minimumBalance = _minimumBalance;
-        huntInterval = _huntInterval;
-        nextHuntTime = block.timestamp + huntInterval;
+    function removeVoyTokens() external onlyOwner {
+        voyToken.transfer(owner(), voyToken.balanceOf(address(this)));
     }
 
-    function setHunts(string[] memory _solutions, string[] memory _clues, string[] memory _urls, uint256[] memory _rewards) public onlyOwner {
-        require(_solutions.length == _clues.length && _clues.length == _urls.length && _urls.length == _rewards.length, "Array length mismatch");
-        for (uint256 i = 0; i < _solutions.length; i++) {
-            treasureHunts[i] = TreasureHunt({
-                nonce: i,
-                clue: _clues[i],
-                url: _urls[i],
-                start: block.timestamp,
-                solutionHash: keccak256(abi.encodePacked(_solutions[i])),
-                guessCount: 0,
-                solved: false,
-                winner: address(0),
-                rewardAmount: _rewards[i]
-            });
-        }
-        huntCount = _solutions.length;
+    function setEntryFeeVOY(uint256 _entryFee) external onlyOwner {
+        entryFeeVOY = _entryFee;
     }
 
-    function startNextHunt() public onlyOwner {
-        require(currentHuntIndex < huntCount, "All hunts completed");
-        nextHuntTime = block.timestamp + huntInterval;
-        treasureHunts[currentHuntIndex].solved = true;
-        emit TreasureHuntStarted(treasureHunts[currentHuntIndex].nonce, treasureHunts[currentHuntIndex].rewardAmount, treasureHunts[currentHuntIndex].clue, treasureHunts[currentHuntIndex].url);
-        currentHuntIndex++;
+    function setAnswerSigner(address _answerSigner) external onlyOwner {
+        answerSigner = _answerSigner;
     }
 
-    function submitAnswer(string memory guess) public canParticipate {
+    function submitTreasureHunt(bytes memory signedAnswer, string memory clue, string memory url, uint256 reward) external {
+        require(msg.sender == answerSigner, "VoyageTreasureHunt: Unauthorized");
+        require(voyToken.balanceOf(address(this)) + treasureChest >= reward, "VoyageTreasureHunt: Insufficient VOY balance");
+
+        huntCount += 1;
+        uint256 currentNonce = huntCount;
+        bytes32 txHash = keccak256(abi.encodePacked(block.timestamp, msg.sender, currentNonce));
+
+        TreasureHunt memory treasureHunt = TreasureHunt({
+            nonce: currentNonce,
+            clue: clue,
+            url: url,
+            start: block.timestamp,
+            signedAnswer: signedAnswer,
+            guessCount: 0,
+            solved: false,
+            winner: address(0)
+        });
+
+        treasureHunts[currentNonce] = treasureHunt;
+        treasureChest += reward;
+        activeHuntNonce = currentNonce;
+
+        emit TreasureHuntStarted(currentNonce, reward, clue, url, txHash);
+    }
+
+    function submitAnswer(string memory guess) external returns (bool) {
+        require(voyToken.balanceOf(msg.sender) >= entryFeeVOY, "VoyageTreasureHunt: Insufficient VOY balance");
+
         TreasureHunt storage treasureHunt = treasureHunts[activeHuntNonce];
+        require(!treasureHunt.solved, "VoyageTreasureHunt: No active hunt");
+
         treasureHunt.guessCount += 1;
 
-        // Transfer participation fee in VOY tokens directly to the feeCollector
-        rewardToken.transferFrom(msg.sender, feeCollector, participationFee);
+        bytes32 message = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(guess))));
+        address signer = recoverSigner(message, treasureHunt.signedAnswer);
+        bool correct = signer == answerSigner;
 
-        if (keccak256(abi.encodePacked(guess)) == treasureHunt.solutionHash) {
-            rewardToken.transfer(msg.sender, treasureHunt.rewardAmount);
+        if (!correct) {
+            voyToken.transferFrom(msg.sender, feeCollector, entryFeeVOY);
+            emit IncorrectAnswer(treasureHunt.nonce, msg.sender, entryFeeVOY, treasureHunt.guessCount, guess);
+            return false;
+        } else {
+            uint256 reward = treasureChest;
+            treasureChest = 0;
+            voyToken.transfer(msg.sender, reward);
             treasureHunt.solved = true;
             treasureHunt.winner = msg.sender;
-            emit TreasureHuntSolved(treasureHunt.nonce, msg.sender, treasureHunt.rewardAmount, guess);
-        } else {
-            emit IncorrectAnswer(treasureHunt.nonce, msg.sender, participationFee, treasureHunt.guessCount, guess);
+            emit TreasureHuntSolved(treasureHunt.nonce, msg.sender, reward, guess);
+            return true;
         }
-    }
-
-    function rollOverRewards() public onlyOwner {
-        require(block.timestamp >= nextHuntTime, "Hunt period not over yet");
-        require(currentHuntIndex > 0, "No previous hunt to roll over");
-        if (!treasureHunts[currentHuntIndex - 1].solved) {
-            treasureHunts[currentHuntIndex].rewardAmount += treasureHunts[currentHuntIndex - 1].rewardAmount;
-        }
-        startNextHunt();
-    }
-
-    function depositRewards(uint256 amount) public onlyOwner {
-        require(rewardToken.transferFrom(msg.sender, address(this), amount), "Deposit transfer failed");
-        rewardAmount += amount;
-    }
-
-    function withdrawTokens(uint256 amount) public onlyOwner {
-        require(rewardToken.transfer(msg.sender, amount), "Withdrawal transfer failed");
-        rewardAmount -= amount;
-    }
-
-    function getContractTokenBalance() public view returns (uint256) {
-        return rewardToken.balanceOf(address(this));
     }
 
     function activeHuntInfo() public view returns (TreasureHunt memory treasureHunt, uint256 reward) {
         treasureHunt = treasureHunts[activeHuntNonce];
-        reward = rewardToken.balanceOf(address(this));
+        reward = treasureChest;
     }
 
     function huntInfo(uint256 nonce) external view returns (TreasureHunt memory) {
         return treasureHunts[nonce];
-    }
-
-    function voyBalanceOf(address account) external view returns (uint256) {
-        return rewardToken.balanceOf(account);
-    }
-
-    function contractVoyBalance() external view returns (uint256) {
-        return rewardToken.balanceOf(address(this));
     }
 
     function recoverSigner(bytes32 message, bytes memory sig) public pure returns (address) {
@@ -142,7 +118,7 @@ contract VoyageTreasureHunt is Ownable {
     }
 
     function splitSignature(bytes memory sig) public pure returns (uint8, bytes32, bytes32) {
-        require(sig.length == 65, "Invalid signature length");
+        require(sig.length == 65, "VoyageTreasureHunt: Invalid signature length");
         bytes32 r;
         bytes32 s;
         uint8 v;
