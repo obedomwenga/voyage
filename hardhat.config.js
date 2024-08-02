@@ -117,7 +117,7 @@ module.exports = {
                 },
             },
             {
-                version: "0.8.14",
+                version: "0.4.24",
                 settings: {
                     optimizer: {
                         enabled: true,
