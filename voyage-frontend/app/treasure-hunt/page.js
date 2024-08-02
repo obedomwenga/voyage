@@ -7,7 +7,7 @@ import Footer from "../../components/Landingpage/Footer"
 import WelcomeModal from "../../components/WelcomeModal"
 import Image from "next/image"
 import { ethers } from "ethers"
-import contractABI from "../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json"
+import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json"
 
 const TreasureHunt = () => {
     const [currentClueIndex, setCurrentClueIndex] = useState(null)
