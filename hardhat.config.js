@@ -38,7 +38,7 @@ module.exports = {
             url: BnB_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
             saveDeployments: true,
-            chainId: 56,
+            chainId: 97,
         },
         mainnet: {
             url: MAINNET_RPC_URL,

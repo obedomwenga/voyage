@@ -16,13 +16,30 @@ contract VoyageTreasureHunt is Ownable {
         address winner;
     }
 
-    event TreasureHuntStarted(uint256 indexed nonce, uint256 reward, string clue, string url);
-    event TreasureHuntSolved(uint256 indexed nonce, address indexed solver, uint256 reward, string answer);
-    event IncorrectAnswer(uint256 indexed nonce, address indexed guesser, uint256 feePaid, uint256 guessCount, string answer);
+    event TreasureHuntStarted(
+        uint256 indexed nonce,
+        uint256 reward,
+        string clue,
+        string url,
+        bytes32 txHash
+    );
+    event TreasureHuntSolved(
+        uint256 indexed nonce,
+        address indexed solver,
+        uint256 reward,
+        string answer
+    );
+    event IncorrectAnswer(
+        uint256 indexed nonce,
+        address indexed guesser,
+        uint256 feePaid,
+        uint256 guessCount,
+        string answer
+    );
 
     uint256 public entryFeeVOY;
-    uint256 public entryFeeFTM;
-    uint256 public treasureChest;
+    uint256 public minBalanceVOY;
+    uint256 public rewardAmount;
     address public answerSigner;
     address public feeCollector;
 
@@ -34,10 +51,11 @@ contract VoyageTreasureHunt is Ownable {
 
     constructor(address voyTokenAddress, address feeCollectorAddress) {
         voyToken = IERC20(voyTokenAddress);
-        entryFeeVOY = 100 ether;
-        entryFeeFTM = 0.1 ether;
-        answerSigner = 0xF550B7Ee011f974BcCB389aD2A76bbB5463a3495;
-        feeCollector = payable(0x11157D586e425acf3604eEAdaaae7bb89dF70242);
+        entryFeeVOY = 100 * 10 ** 18; // 100 VOY tokens
+        minBalanceVOY = 5000 * 10 ** 18; // 5000 VOY tokens
+        rewardAmount = 600 * 10 ** 18; // 600 VOY tokens
+        answerSigner = 0x3C3BBeFf8d5107f888964eeA42b83aefB82BD104;
+        feeCollector = feeCollectorAddress;
     }
 
     function removeVoyTokens() external onlyOwner {
@@ -47,9 +65,9 @@ contract VoyageTreasureHunt is Ownable {
     function setEntryFeeVOY(uint256 _entryFee) external onlyOwner {
         entryFeeVOY = _entryFee;
     }
-    
-    function setEntryFeeFTM(uint256 _entryFee) external onlyOwner {
-        entryFeeFTM = _entryFee;
+
+    function setMinBalanceVOY(uint256 _minBalance) external onlyOwner {
+        minBalanceVOY = _minBalance;
     }
 
     function setAnswerSigner(address _answerSigner) external onlyOwner {
@@ -88,13 +106,18 @@ contract VoyageTreasureHunt is Ownable {
         treasureHunts[currentNonce] = treasureHunt;
         activeHuntNonce = currentNonce;
 
-        emit TreasureHuntStarted(currentNonce, reward, clue, url);
+        emit TreasureHuntStarted(currentNonce, rewardAmount, clue, url, txHash);
     }
-    
-    function submitAnswer(string memory guess) external payable returns (bool) {
-        require(msg.value == entryFeeFTM, "VoyageTreasureHunt: Incorrect FTM entry fee");
-        feeCollector.transfer(msg.value);
-        require(voyToken.balanceOf(msg.sender) >= entryFeeVOY, "VoyageTreasureHunt: Insufficient VOY balance");
+
+    function submitAnswer(string memory guess) external returns (bool) {
+        require(
+            voyToken.balanceOf(msg.sender) >= entryFeeVOY,
+            "VoyageTreasureHunt: Insufficient VOY balance"
+        );
+        require(
+            voyToken.balanceOf(msg.sender) >= minBalanceVOY,
+            "VoyageTreasureHunt: Minimum balance not met"
+        );
 
         TreasureHunt storage treasureHunt = treasureHunts[activeHuntNonce];
         require(!treasureHunt.solved, "VoyageTreasureHunt: No active hunt");

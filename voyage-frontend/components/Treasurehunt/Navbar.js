@@ -11,49 +11,89 @@ const Navbar = () => {
   const [account, setAccount] = useState(null);
   const [balance, setBalance] = useState({ eth: 0, voy: 0 });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
+        setLoading(true);
+        
+        const { chainId } = await window.ethereum.request({ method: 'eth_chainId' });
+        const bnbTestnetChainId = '0x61'; // BNB Testnet chain ID in hexadecimal
+  
+        if (chainId !== bnbTestnetChainId) {
+          // Prompt user to switch to BNB Testnet
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: bnbTestnetChainId }],
+            });
+          } catch (switchError) {
+            // This error code indicates that the chain has not been added to MetaMask
+            if (switchError.code === 4902) {
+              try {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [
+                    {
+                      chainId: bnbTestnetChainId,
+                      chainName: 'BNB Testnet',
+                      rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                      nativeCurrency: {
+                        name: 'Test BNB',
+                        symbol: 'tBNB',
+                        decimals: 18,
+                      },
+                      blockExplorerUrls: ['https://testnet.bscscan.com'],
+                    },
+                  ],
+                });
+              } catch (addError) {
+                console.error("Error adding BNB Testnet:", addError);
+                alert("Please manually switch to BNB Testnet in your MetaMask.");
+                return;
+              }
+            } else {
+              console.error("Error switching to BNB Testnet:", switchError);
+              alert("Please manually switch to BNB Testnet in your MetaMask.");
+              return;
+            }
+          }
+        }
+  
         await window.ethereum.request({ method: 'eth_requestAccounts' });
-
+  
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const address = await signer.getAddress();
         setAccount(address);
-
+  
         const ethBalance = await provider.getBalance(address);
         const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18);
-
+  
         const voyContract = new ethers.Contract(
           process.env.NEXT_PUBLIC_VOY_TOKEN_ADDRESS,
-          voyTokenABI.abi,  // Use .abi to get the ABI from the JSON
+          voyTokenABI.abi,
           signer
         );
         const voyBalance = await voyContract.balanceOf(address);
         const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18);
-
-                setBalance({
-                    tbnb: formattedTbnbBalance,
-                    voy: formattedVoyBalance,
-                })
-            } catch (error) {
-                console.error("Error connecting wallet:", error)
-                if (error.code === -32000) {
-                    alert(
-                        "Cannot estimate gas; transaction may fail or may require manual gas limit."
-                    )
-                } else {
-                    alert("An error occurred while connecting the wallet.")
-                }
-            } finally {
-                setLoading(false) // End loading
-            }
-        } else {
-            alert("MetaMask not detected. Please install MetaMask.")
-        }
+  
+        setBalance({
+          eth: formattedEthBalance,
+          voy: formattedVoyBalance,
+        });
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        alert("An error occurred while connecting the wallet.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      alert("MetaMask not detected. Please install MetaMask.");
     }
   };
+  
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
@@ -85,7 +125,9 @@ const Navbar = () => {
             </span>
           </div>
         ) : (
-          <button onClick={connectWallet} className="bg-blue-500 px-4 py-2 rounded">Connect Wallet</button>
+          <button onClick={connectWallet} className="bg-blue-500 px-4 py-2 rounded" disabled={loading}>
+            {loading ? 'Connecting...' : 'Connect Wallet'}
+          </button>
         )}
       </div>
       <Drawer isOpen={isDrawerOpen} onClose={toggleDrawer} account={account} balance={balance} connectWallet={connectWallet} />
