@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { ethers } from 'ethers';
 import axios from 'axios';
+import React, { useState } from 'react';
+import voyageAbi from '../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json'; // Ensure this path is correct
 
 const HuntForm = ({ handleNewHunt, coordinates }) => {
   const [clue, setClue] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [answer, setAnswer] = useState('');
-  const [reward, setReward] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -30,45 +31,52 @@ const HuntForm = ({ handleNewHunt, coordinates }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    if (!clue || !imageUrl || !answer || reward === '' || coordinates[0] === null || coordinates[1] === null) {
-      setMessage("Please fill in all fields and set the coordinates.");
+
+    if (!clue || !imageUrl || !answer) {
+      setMessage("Please fill in all required fields.");
       return;
     }
-  
+
     setIsLoading(true);
     setMessage("");
-  
+
     try {
-      const newClue = {
-        Rewards: parseInt(reward, 10),
-        Clue: clue,
-        PlaceID: Math.floor(Math.random() * 1000000000), // Generate a random PlaceID
-        URL: imageUrl,
-        Answer: answer,
-        Coordinates: { lat: coordinates[1], lng: coordinates[0] },
-      };
-  
-      // Send the data to the backend
-      const response = await axios.post('/api/save-clue', { clueData: newClue });
-      if (response.status === 200) {
-        setMessage("Hunt successfully created and saved!");
+      if (window.ethereum) {
+        // Request account access
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+
+        // Connect to the smart contract
+        const voyageContract = new ethers.Contract(
+          process.env.NEXT_PUBLIC_CONTRACT_ADDRESS, // Address of the deployed contract
+          voyageAbi.abi, // Correctly access the ABI array
+          signer
+        );
+
+        // Sign the answer
+        const messageHash = ethers.utils.id(answer);
+        const ethSignedMessageHash = ethers.utils.hashMessage(messageHash);
+        const signedAnswer = await signer.signMessage(ethers.utils.arrayify(ethSignedMessageHash));
+
+        // Submit the new hunt to the contract
+        const tx = await voyageContract.submitTreasureHunt(signedAnswer, clue, imageUrl);
+        await tx.wait();
+
+        setMessage("Hunt successfully created and submitted!");
         setClue("");
         setImageUrl("");
         setAnswer("");
-        setReward("");
-        // Reset coordinates in parent state if needed
       } else {
-        setMessage("Failed to save the hunt. Please try again.");
+        setMessage("Please install MetaMask to interact with the blockchain.");
       }
     } catch (error) {
-      console.error("Error saving hunt data:", error);
-      setMessage("Error saving hunt data. Please try again.");
+      console.error("Error submitting hunt data:", error);
+      setMessage("Error submitting hunt data. Please try again.");
     }
-  
+
     setIsLoading(false);
   };
-  
 
   return (
     <div className="bg-black bg-opacity-75 text-white p-4 rounded-md shadow-lg max-w-md w-full">
@@ -105,24 +113,6 @@ const HuntForm = ({ handleNewHunt, coordinates }) => {
             placeholder="Answer"
             className="w-full p-2 mt-1 bg-gray-200 text-black rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium">Reward (VOY)</label>
-          <input
-            type="number"
-            value={reward}
-            onChange={(e) => setReward(e.target.value)}
-            placeholder="Reward"
-            className="w-full p-2 mt-1 bg-gray-200 text-black rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium">Coordinates</label>
-          <p className="mt-2">
-            {coordinates[0] !== null && coordinates[1] !== null
-              ? `Coordinates set: Latitude ${coordinates[1]}, Longitude ${coordinates[0]}`
-              : "No coordinates set"}
-          </p>
         </div>
         <button
           type="submit"
