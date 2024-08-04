@@ -3,19 +3,19 @@ require("@nomiclabs/hardhat-ethers");
 require("hardhat-deploy");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
-require("@nomiclabs/hardhat-etherscan"); // Add this line
+require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://eth-mainnet.alchemyapi.io/v2/your-api-key";
-const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/9XcsCq-4UwwQnQSWhDU3jUZKaiI8lBoE";
-const BnB_RPC_URL = process.env.BnB_RPC_URL || "https://bsc-dataseed.binance.org/";
-const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL || "https://polygon-mainnet.alchemyapi.io/v2/your-api-key";
+const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL;
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
+const BnB_RPC_URL = process.env.BnB_RPC_URL;
+const POLYGON_MAINNET_RPC_URL = process.env.POLYGON_MAINNET_RPC_URL;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const MNEMONIC = process.env.MNEMONIC || "your-mnemonic";
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "your-etherscan-api-key";
-const BnB_API_KEY = process.env.BnB_API_KEY || "your-bscscan-api-key";
-const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "your-polygonscan-api-key";
-const REPORT_GAS = process.env.REPORT_GAS || false;
+const MNEMONIC = process.env.MNEMONIC;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+const BnB_API_KEY = process.env.BnB_API_KEY;
+const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY;
+const REPORT_GAS = process.env.REPORT_GAS;
 
 module.exports = {
     defaultNetwork: "hardhat",
@@ -38,7 +38,7 @@ module.exports = {
             url: BnB_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
             saveDeployments: true,
-            chainId: 56,
+            chainId: 97,
         },
         mainnet: {
             url: MAINNET_RPC_URL,

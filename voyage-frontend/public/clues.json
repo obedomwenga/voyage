@@ -3,60 +3,80 @@
     "Rewards": 500,
     "Clue": "Fill in the missing letters to complete the word.",
     "PlaceID": 424311641,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704495/kgc4kvaiscmocfiinyni.png"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704495/kgc4kvaiscmocfiinyni.png",
+    "Answer": "Voyage",
+    "Coordinates": {"lat": 34.0522, "lng": -118.2437}
   },
   {
     "Rewards": 500,
     "Clue": "Decode the sentence",
     "PlaceID": 424313734,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704496/esf6wg3ggr1fpgv1beq4.png"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704496/esf6wg3ggr1fpgv1beq4.png",
+    "Answer": "Web3",
+    "Coordinates": {"lat": 37.7749, "lng": -122.4194}
   },
   {
     "Rewards": 500,
     "Clue": "Where is this place?",
     "PlaceID": 275650760,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704501/dbeitmt5osllcfhqxr10.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704501/dbeitmt5osllcfhqxr10.jpg",
+    "Answer": "Sydney Opera House",
+    "Coordinates": {"lat": -33.8568, "lng": 151.2153}
   },
   {
     "Rewards": 500,
     "Clue": "Where can you find this?",
     "PlaceID": 2488206560,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704502/xqfz3za86gdb1v6nnmej.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704502/xqfz3za86gdb1v6nnmej.jpg",
+    "Answer": "Machu Picchu",
+    "Coordinates": {"lat": -13.1631, "lng": -72.5450}
   },
   {
     "Rewards": 500,
     "Clue": "A metal town in London.",
     "PlaceID": 39398667620,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704506/xul4l7vxuxrbyvzcjhar.png"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704506/xul4l7vxuxrbyvzcjhar.png",
+    "Answer": "Ironbridge",
+    "Coordinates": {"lat": 51.5074, "lng": -0.1278}
   },
   {
     "Rewards": 500,
     "Clue": "An Island of dogs.",
     "PlaceID": 273650420,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704508/gdgwsysnk2vg4hs9guee.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704508/gdgwsysnk2vg4hs9guee.jpg",
+    "Answer": "Isle of Dogs",
+    "Coordinates": {"lat": 51.5074, "lng": -0.0177}
   },
   {
     "Rewards": 500,
     "Clue": "A free trade zone that sounds like fish.",
     "PlaceID": 1812746611,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704509/myuxrucbcj5v9dnptthi.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704509/myuxrucbcj5v9dnptthi.jpg",
+    "Answer": "Shenzhen",
+    "Coordinates": {"lat": 22.5431, "lng": 114.0579}
   },
   {
     "Rewards": 500,
     "Clue": "A chain of islands unrelated to the monarchs of ancient Egypt.",
     "PlaceID": 424312044,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704512/gjori1nlfhw7ztsymuqx.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704512/gjori1nlfhw7ztsymuqx.jpg",
+    "Answer": "Canary Islands",
+    "Coordinates": {"lat": 28.1248, "lng": -15.4300}
   },
   {
     "Rewards": 500,
     "Clue": "A city that rose from the ruins of the Mayan civilization.",
     "PlaceID": 2699088580,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704514/ez5wcfchb2bfrsq8gonz.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704514/ez5wcfchb2bfrsq8gonz.jpg",
+    "Answer": "Cancun",
+    "Coordinates": {"lat": 21.1619, "lng": -86.8515}
   },
   {
     "Rewards": 500,
     "Clue": "A port city with an aristocratic name.",
     "PlaceID": 2891419660,
-    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704515/mvwymuyhlkn9ospqd6pe.jpg"
+    "URL": "https://res.cloudinary.com/dbd6h02ht/image/upload/v1717704515/mvwymuyhlkn9ospqd6pe.jpg",
+    "Answer": "Prince Rupert",
+    "Coordinates": {"lat": 54.3128, "lng": -130.3057}
   }
 ]

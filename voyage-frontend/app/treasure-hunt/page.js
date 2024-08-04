@@ -1,150 +1,237 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import mapboxgl from "mapbox-gl"
-import Navbar from "../../components/Navbar"
-import Footer from "../../components/Landingpage/Footer"
-import WelcomeModal from "../../components/WelcomeModal"
-import Image from "next/image"
-import { ethers } from "ethers"
-import contractABI from "../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json"
+import React, { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
+import Navbar from '../../components/Treasurehunt/Navbar';
+import Footer from '../../components/Landingpage/Footer';
+import WelcomeModal from '../../components/Treasurehunt/WelcomeModal';
+import HuntList from '../../components/Treasurehunt/HuntList';
+import HuntDetails from '../../components/Treasurehunt/HuntDetails';
+import ResultPopup from '../../components/Treasurehunt/ResultPopup';
+import Confetti from 'react-confetti';
+import contractABI from '../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json';
+import voyTokenABI from '../../artifacts/contracts/voyToken.sol/VoyToken.json';
+import dynamic from 'next/dynamic';
+
+const MapComponent = dynamic(() => import('../../components/Treasurehunt/MapComponent'), { ssr: false });
 
 const TreasureHunt = () => {
-    const [currentClueIndex, setCurrentClueIndex] = useState(null)
-    const [guess, setGuess] = useState("")
-    const [message, setMessage] = useState("")
-    const [showWelcome, setShowWelcome] = useState(true)
-    const [provider, setProvider] = useState(null)
-    const [signer, setSigner] = useState(null)
-    const [contract, setContract] = useState(null)
-    const [hunts, setHunts] = useState([])
+  const [currentClueIndex, setCurrentClueIndex] = useState(null);
+  const [guessLocation, setGuessLocation] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [message, setMessage] = useState("");
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [hunts, setHunts] = useState([]);
+  const [confetti, setConfetti] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [balance, setBalance] = useState({ eth: 0, voy: 0 });
+  const [loading, setLoading] = useState(false);
 
-    const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+  const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+  const voyTokenAddress = process.env.NEXT_PUBLIC_VOY_TOKEN_ADDRESS;
 
-    useEffect(() => {
-        fetch("/clues.json")
-            .then((response) => response.json())
-            .then((data) => {
-                setHunts(data)
-                console.log("Hunts fetched successfully:", data)
-            })
-            .catch((error) => console.error("Error fetching hunts:", error))
-    }, [])
-
-    useEffect(() => {
-        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-        new mapboxgl.Map({
-            container: "map",
-            style: "mapbox://styles/mapbox/streets-v11",
-            center: [0, 0],
-            zoom: 2,
-        })
-    }, [])
-
-    useEffect(() => {
-        if (typeof window !== "undefined" && window.ethereum) {
-            const provider = new ethers.providers.Web3Provider(window.ethereum)
-            setProvider(provider)
-            const signer = provider.getSigner()
-            setSigner(signer)
-            if (contractABI.abi.length > 0) {
-                const contract = new ethers.Contract(contractAddress, contractABI.abi, signer)
-                setContract(contract)
-            }
-        }
-    }, [])
-
-    const handleGuessSubmit = async (e) => {
-        e.preventDefault()
-        if (!contract) {
-            setMessage("Please connect your wallet first.")
-            return
-        }
-
+  useEffect(() => {
+    const init = async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+        setProvider(newProvider);
+        const newSigner = newProvider.getSigner();
+        setSigner(newSigner);
+        const newContract = new ethers.Contract(contractAddress, contractABI.abi, newSigner);
+        setContract(newContract);
         try {
-            const transaction = await contract.submitAnswer(guess)
-            await transaction.wait()
-            setMessage("Congratulations! You found the treasure!")
+          const newAccount = await newSigner.getAddress();
+          setAccount(newAccount);
+          setMessage("Wallet connected successfully!");
+          if (newContract) {
+            await fetchHunts(newContract);
+            await fetchBalances(newProvider, newSigner, newAccount);
+          }
         } catch (error) {
-            console.error("Error submitting guess:", error)
-            setMessage("Incorrect answer or error occurred. Try again!")
+          console.error("Error getting account:", error);
         }
+      } else {
+        setMessage("MetaMask not detected. Please install MetaMask.");
+      }
+    };
 
-        setGuess("")
+    init();
+  }, [contractAddress]);
+
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      setLoading(true);
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+        const newSigner = newProvider.getSigner();
+        const newAccount = await newSigner.getAddress();
+        setProvider(newProvider);
+        setSigner(newSigner);
+        setAccount(newAccount);
+        setMessage("Wallet connected successfully!");
+        if (contract) {
+          await fetchHunts(contract);
+          await fetchBalances(newProvider, newSigner, newAccount);
+        }
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        setMessage("Failed to connect wallet. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setMessage("MetaMask not detected. Please install MetaMask.");
     }
+  };
 
-    const handleHuntClick = (index) => {
-        setCurrentClueIndex(index)
+  const fetchBalances = async (provider, signer, account) => {
+    try {
+      const ethBalance = await provider.getBalance(account);
+      const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18);
+
+      const voyContract = new ethers.Contract(voyTokenAddress, voyTokenABI.abi, signer);
+      const voyBalance = await voyContract.balanceOf(account);
+      const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18);
+
+      setBalance({
+        eth: formattedEthBalance,
+        voy: formattedVoyBalance,
+      });
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+      setBalance({ eth: 0, voy: 0 });
     }
+  };
 
-    return (
-        <div>
-            <Navbar />
-            {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
-            <div className="relative h-screen">
-                <div id="map" className="w-full h-full"></div>
-                <div className="absolute top-0 left-0 w-full max-w-md p-4 bg-black bg-opacity-75 rounded shadow-md">
-                    {currentClueIndex === null ? (
-                        <>
-                            <h2 className="mb-2 text-lg font-bold text-white">Active Hunts</h2>
-                            {hunts.length > 0 ? (
-                                hunts.map((hunt, index) => (
-                                    <div
-                                        key={index}
-                                        className="mb-4 text-white cursor-pointer"
-                                        onClick={() => handleHuntClick(index)}
-                                    >
-                                        <h3>{hunt.PlaceID}</h3>
-                                        <p>{hunt.Clue}</p>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-white">No Active Hunts</p>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                            <h2 className="mb-2 text-lg font-bold text-white">Treasure Hunt</h2>
-                            <p className="mb-4 text-white">Check out the riddle below!</p>
-                            <p className="mb-4 text-white">
-                                Reward: {hunts[currentClueIndex].Rewards}
-                            </p>
-                            <Image
-                                src={hunts[currentClueIndex].URL}
-                                alt="Treasure Hunt Clue"
-                                width={320}
-                                height={240}
-                            />
-                            <p className="text-white">{hunts[currentClueIndex].Clue}</p>
-                            <form onSubmit={handleGuessSubmit}>
-                                <input
-                                    type="text"
-                                    value={guess}
-                                    onChange={(e) => setGuess(e.target.value)}
-                                    placeholder="Enter your guess"
-                                    className="w-full px-4 py-2 mb-4 border rounded"
-                                />
-                                <button
-                                    type="submit"
-                                    className="w-full px-4 py-2 bg-blue-500 rounded"
-                                >
-                                    Submit
-                                </button>
-                            </form>
-                            {message && <p className="mt-4 text-white">{message}</p>}
-                            <button
-                                onClick={() => setCurrentClueIndex(null)}
-                                className="mt-4 text-white"
-                            >
-                                Back to hunts
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-            <Footer />
+  const fetchHunts = async (contractInstance) => {
+    try {
+      const huntCount = await contractInstance.huntCount();
+  
+      const huntsArray = [];
+      for (let i = 0; i < huntCount; i++) {
+        const huntInfo = await contractInstance.huntInfo(i);
+  
+        console.log('Hunt info:', huntInfo); // For debugging
+  
+        huntsArray.push({
+          id: huntInfo.nonce.toString(),
+          Clue: huntInfo.clue,
+          URL: huntInfo.url,
+          Rewards: "600", // Manually set the reward amount as 600
+          startTime: new Date(huntInfo.start.toNumber() * 1000).toLocaleString(),
+          solved: huntInfo.solved,
+          winner: huntInfo.winner === ethers.constants.AddressZero ? null : huntInfo.winner,
+        });
+      }
+      setHunts(huntsArray);
+    } catch (error) {
+      console.error("Error fetching hunts:", error);
+    }
+  };
+  
+  
+  
+  
+  
+  
+  
+
+  const handleGuessSubmit = async (e) => {
+    e.preventDefault();
+    if (!contract) {
+      setMessage("Please connect your wallet first.");
+      return;
+    }
+    if (!guessLocation) {
+      setMessage("Please select a location on the map.");
+      return;
+    }
+  
+    try {
+      const guess = guessLocation;
+      const transaction = await contract.submitAnswer(guess); // Pass only the guess as an argument
+      await transaction.wait();
+      setMessage("Congratulations! You found the treasure!");
+      setConfetti(true);
+      setPopupMessage("Your guess was correct!");
+      setIsCorrect(true);
+      setIsPopupOpen(true);
+    } catch (error) {
+      console.error("Error submitting guess:", error);
+      setMessage("Incorrect answer or error occurred. Try again!");
+      setPopupMessage("Incorrect answer. Please try again!");
+      setIsCorrect(false);
+      setIsPopupOpen(true);
+    }
+  
+    setGuessLocation("");
+    setShowConfirm(false);
+  };
+  
+
+  const handleHuntClick = (index) => {
+    setCurrentClueIndex(index);
+    setMessage('');
+    setConfetti(false);
+  };
+
+  const handleClosePopup = () => {
+    setIsPopupOpen(false);
+  };
+
+  return (
+    <div>
+      {confetti && <Confetti />}
+      <Navbar 
+        account={account} 
+        balance={balance}
+        connectWallet={connectWallet} 
+        disconnectWallet={() => setAccount(null)} 
+        loading={loading} 
+      />
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+      <div className="h-screen relative">
+        <MapComponent 
+          hunts={hunts} 
+          currentClueIndex={currentClueIndex} 
+          handleHuntClick={handleHuntClick} 
+          setGuessLocation={setGuessLocation} 
+          setShowConfirm={setShowConfirm} 
+        />
+        <div className="absolute top-0 left-0 p-4 bg-black bg-opacity-75 rounded shadow-md max-w-md w-full">
+          {currentClueIndex === null ? (
+            <HuntList hunts={hunts} handleHuntClick={handleHuntClick} />
+          ) : (
+            <HuntDetails
+              hunt={hunts[currentClueIndex]}
+              guess={guessLocation}
+              setGuess={setGuessLocation}
+              handleGuessSubmit={handleGuessSubmit}
+              message={message}
+              setCurrentClueIndex={setCurrentClueIndex}
+            />
+          )}
         </div>
-    )
-}
+        {showConfirm && (
+          <div className="absolute bottom-0 left-0 p-4 bg-white bg-opacity-75 rounded shadow-md">
+            <p>Are you sure you want to submit this location?</p>
+            <button className="bg-green-500 px-4 py-2 rounded" onClick={handleGuessSubmit}>Yes</button>
+            <button className="bg-red-500 px-4 py-2 rounded" onClick={() => setShowConfirm(false)}>No</button>
+          </div>
+        )}
+        {message && <p className="absolute bottom-0 right-0 p-4 bg-white bg-opacity-75 rounded shadow-md">{message}</p>}
+      </div>
+      <Footer />
+      <ResultPopup isOpen={isPopupOpen} onClose={handleClosePopup} message={popupMessage} isCorrect={isCorrect} />
+    </div>
+  );
+};
 
-export default TreasureHunt
+export default TreasureHunt;
