@@ -1,5 +1,3 @@
-// components/HuntList.js
-
 import React from 'react';
 
 const HuntList = ({ hunts, handleHuntClick }) => (
@@ -7,9 +5,13 @@ const HuntList = ({ hunts, handleHuntClick }) => (
     <h2 className="text-lg font-bold mb-2 text-white">Active Hunts</h2>
     {hunts.length > 0 ? (
       hunts.map((hunt, index) => (
-        <div key={index} className="mb-4 cursor-pointer text-white" onClick={() => handleHuntClick(index)}>
-          <h3>{hunt.PlaceID}</h3>
-          <p>{hunt.Clue}</p>
+        <div 
+          key={index} 
+          className="mb-4 cursor-pointer p-4 bg-gray-900 hover:bg-gray-800 rounded text-white"
+          onClick={() => handleHuntClick(index)}
+        >
+          <h3 className="font-semibold">{hunt.id}</h3>
+          <p className="text-sm">{hunt.Clue}</p>
         </div>
       ))
     ) : (

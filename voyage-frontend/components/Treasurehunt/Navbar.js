@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Drawer from './Drawer'; // Adjust the import path if needed
+import Drawer from './Drawer';
 
 const Navbar = ({ account, balance, connectWallet, disconnectWallet, loading }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -20,7 +20,7 @@ const Navbar = ({ account, balance, connectWallet, disconnectWallet, loading }) 
       </div>
       <div className="sm:hidden">
         <button onClick={toggleDrawer} className="text-white">
-          &#9776; {/* Hamburger icon */}
+          &#9776;
         </button>
       </div>
       <div className="hidden sm:flex items-center">
@@ -28,7 +28,7 @@ const Navbar = ({ account, balance, connectWallet, disconnectWallet, loading }) 
         {account ? (
           <div className="flex items-center space-x-2">
             <span className="bg-green-500 px-4 py-2 rounded">
-              ETH: {balance.eth}
+              TBNB: {balance.eth}
             </span>
             <span className="bg-green-500 px-4 py-2 rounded">
               VOY: {balance.voy}
