@@ -8,7 +8,7 @@ import MapComponent from "../../components/AdminPanel/MapComponent"
 import HuntForm from "../../components/AdminPanel/HuntForm"
 import ExistingHunts from "../../components/AdminPanel/ExistingHunts"
 import Messages from "../../components/AdminPanel/Messages"
-import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv5.json"
+import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
 import voyTokenABI from "../../../artifacts/contracts/voyToken.sol/ERC20Token.json"
 
 const AdminPanel = () => {

@@ -1,7 +1,7 @@
 import { ethers } from "ethers"
 import axios from "axios"
 import React, { useState } from "react"
-import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv5.json" // Ensure this path is correct
+import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json" // Ensure this path is correct
 
 const HuntForm = ({ handleNewHunt, coordinates }) => {
     const [clues, setClues] = useState([""])
