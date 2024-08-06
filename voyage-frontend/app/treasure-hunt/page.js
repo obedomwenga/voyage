@@ -9,9 +9,10 @@ import HuntList from "../../components/Treasurehunt/HuntList"
 import HuntDetails from "../../components/Treasurehunt/HuntDetails"
 import ResultPopup from "../../components/Treasurehunt/ResultPopup"
 import Confetti from "react-confetti"
-import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
-import voyTokenABI from "../../../artifacts/contracts/voyToken.sol/ERC20Token.json"
+import contractABI from "../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
+import voyTokenABI from "../../artifacts/contracts/voyToken.sol/ERC20Token.json"
 import dynamic from "next/dynamic"
+import Head from "next/head"
 
 const MapComponent = dynamic(() => import("../../components/Treasurehunt/MapComponent"), {
     ssr: false,
@@ -320,84 +321,93 @@ const TreasureHunt = () => {
     }
 
     return (
-        <div>
-            {confetti && <Confetti />}
-            <Navbar
-                account={account}
-                balance={balance}
-                connectWallet={connectWallet}
-                disconnectWallet={() => setAccount(null)}
-                loading={loading}
-            />
-            {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
-            <div className="relative h-screen">
-                <MapComponent
-                    hunts={hunts}
-                    currentClueIndex={currentClueIndex}
-                    handleHuntClick={handleHuntClick}
-                    setGuessLocation={setGuessLocation}
-                    setShowConfirm={setShowConfirm}
-                    setCountryName={setCountryName}
-                    handleMapClick={handleMapClick} // Use this instead of setCountryName directly
+        <>
+            <Head>
+                <title>Voyage | Treasure Hunt</title>
+                <meta name="description" content="Join the Voyage treasure hunt" />
+            </Head>
+
+            <div>
+                {confetti && <Confetti />}
+                <Navbar
+                    account={account}
+                    balance={balance}
+                    connectWallet={connectWallet}
+                    disconnectWallet={() => setAccount(null)}
+                    loading={loading}
                 />
-                <div className="absolute top-0 left-0 w-full max-w-md p-4 bg-black bg-opacity-75 rounded shadow-md">
-                    {hunts.length > 0 ? (
-                        currentClueIndex === null ? (
-                            <HuntList
-                                hunts={hunts}
-                                activeHuntNonce={activeHuntNonce}
-                                handleHuntClick={handleHuntClick}
-                            />
+                {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+                <div className="relative h-screen">
+                    <MapComponent
+                        hunts={hunts}
+                        currentClueIndex={currentClueIndex}
+                        handleHuntClick={handleHuntClick}
+                        setGuessLocation={setGuessLocation}
+                        setShowConfirm={setShowConfirm}
+                        setCountryName={setCountryName}
+                        handleMapClick={handleMapClick} // Use this instead of setCountryName directly
+                    />
+                    <div className="absolute top-0 left-0 w-full max-w-md p-4 bg-black bg-opacity-75 rounded shadow-md">
+                        {hunts.length > 0 ? (
+                            currentClueIndex === null ? (
+                                <HuntList
+                                    hunts={hunts}
+                                    activeHuntNonce={activeHuntNonce}
+                                    handleHuntClick={handleHuntClick}
+                                />
+                            ) : (
+                                <HuntDetails
+                                    hunt={hunts[currentClueIndex]}
+                                    guess={answer} // Use answer state
+                                    setGuess={setAnswer}
+                                    handleGuessSubmit={handleGuessSubmit}
+                                    message={message}
+                                    setCurrentClueIndex={setCurrentClueIndex}
+                                    onAnswerChange={handleAnswerChange} // Handler for answer input
+                                />
+                            )
                         ) : (
-                            <HuntDetails
-                                hunt={hunts[currentClueIndex]}
-                                guess={answer} // Use answer state
-                                setGuess={setAnswer}
-                                handleGuessSubmit={handleGuessSubmit}
-                                message={message}
-                                setCurrentClueIndex={setCurrentClueIndex}
-                                onAnswerChange={handleAnswerChange} // Handler for answer input
-                            />
-                        )
-                    ) : (
-                        <p className="text-white">No active hunts available.</p>
-                    )}
-                </div>
-                {showConfirm && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-                            <p className="mb-4">Are you sure you want to use this location: {countryName}?</p>
-                            <div className="flex justify-center space-x-4">
-                                <button
-                                    className="px-4 py-2 bg-green-500 text-white rounded"
-                                    onClick={confirmAnswer}
-                                >
-                                    Yes
-                                </button>
-                                <button
-                                    className="px-4 py-2 bg-red-500 text-white rounded"
-                                    onClick={() => setShowConfirm(false)}
-                                >
-                                    No
-                                </button>
+                            <p className="text-white">No active hunts available.</p>
+                        )}
+                    </div>
+                    {showConfirm && (
+                        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                                <p className="mb-4">
+                                    Are you sure you want to use this location: {countryName}?
+                                </p>
+                                <div className="flex justify-center space-x-4">
+                                    <button
+                                        className="px-4 py-2 bg-green-500 text-white rounded"
+                                        onClick={confirmAnswer}
+                                    >
+                                        Yes
+                                    </button>
+                                    <button
+                                        className="px-4 py-2 bg-red-500 text-white rounded"
+                                        onClick={() => setShowConfirm(false)}
+                                    >
+                                        No
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-                {message && (
-                    <p className="absolute bottom-0 right-0 p-4 bg-white bg-opacity-75 rounded shadow-md">
-                        {message}
-                    </p>
-                )}
+                    )}
+                    {message && (
+                        <p className="absolute bottom-0 right-0 p-4 bg-white bg-opacity-75 rounded shadow-md">
+                            {message}
+                        </p>
+                    )}
+                </div>
+                <Footer />
+                <ResultPopup
+                    isOpen={isPopupOpen}
+                    onClose={handleClosePopup}
+                    message={popupMessage}
+                    isCorrect={isCorrect}
+                />
             </div>
-            <Footer />
-            <ResultPopup
-                isOpen={isPopupOpen}
-                onClose={handleClosePopup}
-                message={popupMessage}
-                isCorrect={isCorrect}
-            />
-        </div>
+        </>
     )
 }
 

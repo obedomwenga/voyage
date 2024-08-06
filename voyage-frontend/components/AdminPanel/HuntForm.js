@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"; // Ensure useEffect is imported
 import { ethers } from "ethers";
 import axios from "axios";
-import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json";
+import voyageAbi from "../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json";
 
 const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
     const [clues, setClues] = useState([""]);
