@@ -88,10 +88,20 @@ const TreasureHunt = () => {
                             setIsPopupOpen(true)
                             setMessage("")
                             clearInterval(pollInterval) // Stop polling once solved
+                        } else {
+                            setPopupMessage("Incorrect answer. Please try again!")
+                            setIsCorrect(false)
+                            setIsPopupOpen(true)
+                            clearInterval(pollInterval) // Stop polling if incorrect
                         }
                     }
                 } catch (error) {
+                    clearInterval(pollInterval)
                     console.error("Error polling contract state:", error)
+                    setMessage("An error occurred. Please try again.")
+                    setPopupMessage("An error occurred. Please try again.")
+                    setIsCorrect(false)
+                    setIsPopupOpen(true)
                 }
             }
         }
@@ -215,22 +225,47 @@ const TreasureHunt = () => {
             const amountToApprove = ethers.utils.parseUnits("100", 18)
             await approveToken(amountToApprove)
 
-            const [hunt, reward] = await contract.activeHuntInfo()
-            const currentTime = Math.floor(Date.now() / 1000)
-            const huntDuration = (await contract.DURATION()).toNumber()
-            const isHuntActive = !hunt.solved && currentTime < hunt.start.toNumber() + huntDuration
-
-            if (!isHuntActive) {
-                setMessage("The hunt has expired or is already solved.")
-                return
-            }
-
             setMessage("Submitting your answer...")
             const transaction = await contract.submitAnswer(guessLocation)
             await transaction.wait()
             setMessage("Answer submitted. Waiting for verification...")
 
-            console.log("Transaction hash:", transaction.hash)
+            // Poll the contract state to check if the answer was correct
+            const intervalId = setInterval(async () => {
+                try {
+                    const hunt = await contract.treasureHunts(activeHuntNonce)
+                    if (hunt.solved) {
+                        clearInterval(intervalId)
+                        setMessage("")
+                        if (hunt.winner.toLowerCase() === account.toLowerCase()) {
+                            setConfetti(true)
+                            setPopupMessage("Congratulations! You solved the hunt!")
+                            setIsCorrect(true)
+                        } else {
+                            setPopupMessage("Incorrect answer. Please try again!")
+                            setIsCorrect(false)
+                        }
+                        setIsPopupOpen(true)
+                    } else {
+                        // Check if the transaction was confirmed but the hunt is not solved
+                        const receipt = await provider.getTransactionReceipt(transaction.hash)
+                        if (receipt && receipt.confirmations > 0) {
+                            clearInterval(intervalId)
+                            setMessage("Incorrect answer. Please try again.")
+                            setPopupMessage("Incorrect answer. Please try again!")
+                            setIsCorrect(false)
+                            setIsPopupOpen(true)
+                        }
+                    }
+                } catch (error) {
+                    clearInterval(intervalId)
+                    console.error("Error polling contract state:", error)
+                    setMessage("An error occurred. Please try again.")
+                    setPopupMessage("An error occurred. Please try again.")
+                    setIsCorrect(false)
+                    setIsPopupOpen(true)
+                }
+            }, 5000)
         } catch (error) {
             console.error("Error submitting guess:", error)
             setMessage("An error occurred. Please try again.")
