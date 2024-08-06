@@ -9,7 +9,7 @@ import HuntList from "../../components/Treasurehunt/HuntList"
 import HuntDetails from "../../components/Treasurehunt/HuntDetails"
 import ResultPopup from "../../components/Treasurehunt/ResultPopup"
 import Confetti from "react-confetti"
-import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv5.json"
+import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
 import voyTokenABI from "../../../artifacts/contracts/voyToken.sol/ERC20Token.json"
 import dynamic from "next/dynamic"
 
@@ -45,13 +45,11 @@ const TreasureHunt = () => {
         const init = async () => {
             if (typeof window !== "undefined" && window.ethereum) {
                 try {
-                    // Set up provider and signer
                     const newProvider = new ethers.providers.Web3Provider(window.ethereum)
                     setProvider(newProvider)
                     const newSigner = newProvider.getSigner()
                     setSigner(newSigner)
 
-                    // Initialize contract
                     const newContract = new ethers.Contract(
                         contractAddress,
                         contractABI.abi,
@@ -59,12 +57,10 @@ const TreasureHunt = () => {
                     )
                     setContract(newContract)
 
-                    // Fetch connected account
                     const newAccount = await newSigner.getAddress()
                     setAccount(newAccount)
                     setMessage("Wallet connected successfully!")
 
-                    // Fetch active hunt and balances
                     await fetchActiveHunt(newContract)
                     await fetchBalances(newProvider, newSigner, newAccount)
                 } catch (error) {
@@ -78,6 +74,38 @@ const TreasureHunt = () => {
 
         init()
     }, [contractAddress])
+
+    useEffect(() => {
+        let pollInterval
+
+        const pollContractState = async () => {
+            if (contract && activeHuntNonce && account) {
+                try {
+                    const hunt = await contract.treasureHunts(activeHuntNonce)
+                    if (hunt.solved) {
+                        if (hunt.winner.toLowerCase() === account.toLowerCase()) {
+                            setConfetti(true)
+                            setPopupMessage("Congratulations! You solved the hunt!")
+                            setIsCorrect(true)
+                            setIsPopupOpen(true)
+                            setMessage("")
+                            clearInterval(pollInterval) // Stop polling once solved
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error polling contract state:", error)
+                }
+            }
+        }
+
+        if (contract) {
+            pollInterval = setInterval(pollContractState, 5000) // Poll every 5 seconds
+        }
+
+        return () => {
+            if (pollInterval) clearInterval(pollInterval)
+        }
+    }, [contract, activeHuntNonce, account])
 
     const connectWallet = async () => {
         if (window.ethereum) {
@@ -108,13 +136,26 @@ const TreasureHunt = () => {
         }
     }
 
+    const approveToken = async (amount) => {
+        if (!provider || !signer || !voyTokenAddress) return
+
+        try {
+            const voyContract = new ethers.Contract(voyTokenAddress, voyTokenABI.abi, signer)
+            const transaction = await voyContract.approve(contractAddress, amount)
+            await transaction.wait()
+
+            console.log(`Approved ${amount} tokens for contract ${contractAddress}`)
+        } catch (error) {
+            console.error("Error approving tokens:", error)
+            setMessage("Failed to approve tokens. Please try again.")
+        }
+    }
+
     const fetchBalances = async (provider, signer, account) => {
         try {
-            // Fetch ETH balance
             const ethBalance = await provider.getBalance(account)
             const formattedEthBalance = ethers.utils.formatUnits(ethBalance, 18)
 
-            // Fetch VOY token balance
             const voyContract = new ethers.Contract(voyTokenAddress, voyTokenABI.abi, signer)
             const voyBalance = await voyContract.balanceOf(account)
             const formattedVoyBalance = ethers.utils.formatUnits(voyBalance, 18)
@@ -131,10 +172,7 @@ const TreasureHunt = () => {
 
     const fetchActiveHunt = async (contractInstance) => {
         try {
-            // Fetch active hunt details
             const [hunt, reward] = await contractInstance.activeHuntInfo()
-
-            // Check if the hunt is active (not solved and not expired)
             const currentTime = Math.floor(Date.now() / 1000)
             const huntDuration = (await contractInstance.DURATION()).toNumber()
             const isHuntActive = !hunt.solved && currentTime < hunt.start.toNumber() + huntDuration
@@ -154,7 +192,7 @@ const TreasureHunt = () => {
                 ])
                 setMessage("")
             } else {
-                setHunts([]) // Clear the hunts if there are no active hunts
+                setHunts([])
                 setMessage("No active hunts available at the moment.")
             }
         } catch (error) {
@@ -175,7 +213,10 @@ const TreasureHunt = () => {
         }
 
         try {
-            // Verify the hunt is still active before submitting
+            // Set the amount of tokens to approve for the transaction (e.g., 100 tokens)
+            const amountToApprove = ethers.utils.parseUnits("100", 18)
+            await approveToken(amountToApprove)
+
             const [hunt, reward] = await contract.activeHuntInfo()
             const currentTime = Math.floor(Date.now() / 1000)
             const huntDuration = (await contract.DURATION()).toNumber()
@@ -189,15 +230,13 @@ const TreasureHunt = () => {
             // Submit the answer
             const transaction = await contract.submitAnswer(answer)
             await transaction.wait()
-            setMessage("Congratulations! You found the treasure!")
-            setConfetti(true)
-            setPopupMessage("Your guess was correct!")
-            setIsCorrect(true)
-            setIsPopupOpen(true)
+            setMessage("Answer submitted. Waiting for verification...")
+
+            console.log("Transaction hash:", transaction.hash)
         } catch (error) {
             console.error("Error submitting guess:", error)
-            setMessage("Incorrect answer or error occurred. Try again!")
-            setPopupMessage("Incorrect answer. Please try again!")
+            setMessage("An error occurred. Please try again.")
+            setPopupMessage("An error occurred. Please try again.")
             setIsCorrect(false)
             setIsPopupOpen(true)
         }
