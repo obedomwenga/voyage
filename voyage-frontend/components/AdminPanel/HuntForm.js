@@ -21,96 +21,100 @@ const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
     }, [countryName]);
 
     const handleFileUpload = async (e, index) => {
-        const file = e.target.files[0];
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+        const file = e.target.files[0]
+        const formData = new FormData()
+        formData.append("file", file)
+        formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET)
 
         try {
             const response = await axios.post(
                 `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`,
                 formData
-            );
-            const newImageUrls = [...imageUrls];
-            newImageUrls[index] = response.data.secure_url;
-            setImageUrls(newImageUrls);
-            setMessage("Image uploaded successfully.");
+            )
+            const newImageUrls = [...imageUrls]
+            newImageUrls[index] = response.data.secure_url
+            setImageUrls(newImageUrls)
+            setMessage("Image uploaded successfully.")
         } catch (error) {
-            console.error("Error uploading file:", error);
-            setMessage("Error uploading file. Please try again.");
+            console.error("Error uploading file:", error)
+            setMessage("Error uploading file. Please try again.")
         }
-    };
+    }
 
     const generateSignedMessage = async (answerString) => {
         try {
-            const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(answerString));
-            console.log("Hash:", hash);
+            const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(answerString))
+            console.log("Hash:", hash)
 
-            const privateKey = "e40d7ec87c67e73fabeb65d8b62410238ebdaee7048992264e248d88655506be";
-            const wallet = new ethers.Wallet(privateKey);
-            const signedMessage = await wallet.signMessage(ethers.utils.arrayify(hash));
-            console.log("Signed Message:", signedMessage);
+            const privateKey = "e40d7ec87c67e73fabeb65d8b62410238ebdaee7048992264e248d88655506be"
+            const wallet = new ethers.Wallet(privateKey)
+            const signedMessage = await wallet.signMessage(ethers.utils.arrayify(hash))
+            console.log("Signed Message:", signedMessage)
 
-            return signedMessage;
+            return signedMessage
         } catch (error) {
-            console.error("Error generating signed message:", error);
-            setMessage("Error signing message. Please try again.");
-            return null;
+            console.error("Error generating signed message:", error)
+            setMessage("Error signing message. Please try again.")
+            return null
         }
-    };
+    }
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        e.preventDefault()
 
-        if (clues.some((clue) => !clue) || imageUrls.some((url) => !url) || answers.some((answer) => !answer)) {
-            setMessage("Please fill in all required fields.");
-            return;
+        if (
+            clues.some((clue) => !clue) ||
+            imageUrls.some((url) => !url) ||
+            answers.some((answer) => !answer)
+        ) {
+            setMessage("Please fill in all required fields.")
+            return
         }
 
-        setIsLoading(true);
-        setMessage("");
+        setIsLoading(true)
+        setMessage("")
 
         try {
             const signedAnswers = await Promise.all(
                 answers.map((answer) => generateSignedMessage(answer))
-            );
+            )
 
             if (signedAnswers.every((signed) => signed !== null)) {
                 if (window.ethereum) {
-                    await window.ethereum.request({ method: "eth_requestAccounts" });
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    const signer = provider.getSigner();
+                    await window.ethereum.request({ method: "eth_requestAccounts" })
+                    const provider = new ethers.providers.Web3Provider(window.ethereum)
+                    const signer = provider.getSigner()
 
                     const voyageContract = new ethers.Contract(
                         process.env.NEXT_PUBLIC_CONTRACT_ADDRESS,
                         voyageAbi.abi,
                         signer
-                    );
+                    )
 
                     const tx = await voyageContract.submitTreasureHunts(
                         signedAnswers,
                         clues,
                         imageUrls
-                    );
-                    await tx.wait();
+                    )
+                    await tx.wait()
 
-                    setMessage("Hunts successfully created and submitted!");
-                    setClues([""]);
-                    setImageUrls([""]);
-                    setAnswers([""]);
+                    setMessage("Hunts successfully created and submitted!")
+                    setClues([""])
+                    setImageUrls([""])
+                    setAnswers([""])
                 } else {
-                    setMessage("Please install MetaMask to interact with the blockchain.");
+                    setMessage("Please install MetaMask to interact with the blockchain.")
                 }
             } else {
-                setMessage("Error signing the answers. Please try again.");
+                setMessage("Error signing the answers. Please try again.")
             }
         } catch (error) {
-            console.error("Error submitting hunt data:", error);
-            setMessage("Error submitting hunt data. Please try again.");
+            console.error("Error submitting hunt data:", error)
+            setMessage("Error submitting hunt data. Please try again.")
         }
 
-        setIsLoading(false);
-    };
+        setIsLoading(false)
+    }
 
     const addHunt = () => {
         setClues([...clues, ""]);
@@ -130,9 +134,9 @@ const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
                                 type="text"
                                 value={clue}
                                 onChange={(e) => {
-                                    const newClues = [...clues];
-                                    newClues[index] = e.target.value;
-                                    setClues(newClues);
+                                    const newClues = [...clues]
+                                    newClues[index] = e.target.value
+                                    setClues(newClues)
                                 }}
                                 placeholder="Clue"
                                 className="w-full p-2 mt-1 text-black bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -161,9 +165,9 @@ const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
                                 type="text"
                                 value={answers[index]}
                                 onChange={(e) => {
-                                    const newAnswers = [...answers];
-                                    newAnswers[index] = e.target.value;
-                                    setAnswers(newAnswers);
+                                    const newAnswers = [...answers]
+                                    newAnswers[index] = e.target.value
+                                    setAnswers(newAnswers)
                                 }}
                                 placeholder="Answer"
                                 className="w-full p-2 mt-1 text-black bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -188,7 +192,7 @@ const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
                 {message && <p className="mt-4">{message}</p>}
             </form>
         </div>
-    );
-};
+    )
+}
 
-export default HuntForm;
+export default HuntForm
