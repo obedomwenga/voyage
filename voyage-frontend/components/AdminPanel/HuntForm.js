@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from "react" // Ensure useEffect is imported
-import { ethers } from "ethers"
-import axios from "axios"
-import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
+import React, { useState, useEffect } from "react"; // Ensure useEffect is imported
+import { ethers } from "ethers";
+import axios from "axios";
+import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json";
 
 const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
-    const [clues, setClues] = useState([""])
-    const [imageUrls, setImageUrls] = useState([""])
-    const [answers, setAnswers] = useState([""])
-    const [isLoading, setIsLoading] = useState(false)
-    const [message, setMessage] = useState("")
+    const [clues, setClues] = useState([""]);
+    const [imageUrls, setImageUrls] = useState([""]);
+    const [answers, setAnswers] = useState([""]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState("");
+    const [activeHuntIndex, setActiveHuntIndex] = useState(0); // State to track the active hunt being edited
 
     useEffect(() => {
-        setAnswers([countryName])
-    }, [countryName])
+        // Update the answer for the active hunt index when the countryName changes
+        if (countryName) {
+            const newAnswers = [...answers];
+            newAnswers[activeHuntIndex] = countryName;
+            setAnswers(newAnswers);
+        }
+    }, [countryName]);
 
     const handleFileUpload = async (e, index) => {
         const file = e.target.files[0]
@@ -111,16 +117,17 @@ const HuntForm = ({ handleNewHunt, coordinates, countryName }) => {
     }
 
     const addHunt = () => {
-        setClues([...clues, ""])
-        setImageUrls([...imageUrls, ""])
-        setAnswers([...answers, ""])
-    }
+        setClues([...clues, ""]);
+        setImageUrls([...imageUrls, ""]);
+        setAnswers([...answers, ""]);
+        setActiveHuntIndex(answers.length); // Set the active hunt index to the newly added hunt
+    };
 
     return (
         <div className="w-full max-w-md p-4 text-white bg-black bg-opacity-75 rounded-md shadow-lg">
             <form onSubmit={handleSubmit}>
                 {clues.map((clue, index) => (
-                    <div key={index}>
+                    <div key={index} onClick={() => setActiveHuntIndex(index)}>
                         <div className="mb-4">
                             <label className="block text-sm font-medium">Clue</label>
                             <input
