@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react"
 import { ethers } from "ethers"
@@ -15,6 +15,8 @@ const AdminPanel = () => {
     const [message, setMessage] = useState("")
     const [hunts, setHunts] = useState([])
     const [coordinates, setCoordinates] = useState([null, null])
+    const [countryName, setCountryName] = useState("") // New state for country name
+    const [showConfirm, setShowConfirm] = useState(false)
     const [account, setAccount] = useState(null)
     const [balance, setBalance] = useState({ eth: 0, voy: 0 })
     const [loading, setLoading] = useState(false)
@@ -132,7 +134,6 @@ const AdminPanel = () => {
                 const huntCount = await voyageContract.huntCount()
                 const huntsArray = []
 
-                // Start fetching hunts from nonce 1
                 for (let i = 1; i <= huntCount; i++) {
                     const huntInfo = await voyageContract.huntInfo(i)
                     const { nonce, clue, start, solved, winner } = huntInfo
@@ -140,7 +141,6 @@ const AdminPanel = () => {
                     huntsArray.push({
                         id: nonce.toString(),
                         clue,
-                        // Display human-readable time or indicate if not started
                         startTime:
                             start.toNumber() > 0
                                 ? new Date(start.toNumber() * 1000).toLocaleString()
@@ -157,8 +157,19 @@ const AdminPanel = () => {
         }
     }
 
+    const handleMapClick = (countryName, coords) => {
+        setCountryName(countryName)
+        setCoordinates(coords)
+        setShowConfirm(true)
+    }
+
+    const confirmLocation = () => {
+        setShowConfirm(false)
+        setMessage(`Location set to: ${countryName}`)
+    }
+
     const handleNewHunt = async (newHunt) => {
-        // Your contract interaction logic for creating a new hunt
+        // Contract interaction logic for creating a new hunt
     }
 
     return (
@@ -171,15 +182,44 @@ const AdminPanel = () => {
                 loading={loading}
             />
             <div className="relative h-full">
-                <MapComponent setCoordinates={setCoordinates} />
+                <MapComponent
+                    setCoordinates={setCoordinates}
+                    setCountryName={setCountryName}
+                    handleMapClick={handleMapClick} // Pass handleMapClick to MapComponent
+                />
                 <div className="absolute top-0 right-0 z-10 m-4">
-                    <HuntForm handleNewHunt={handleNewHunt} coordinates={coordinates} />
+                    <HuntForm
+                        handleNewHunt={handleNewHunt}
+                        coordinates={coordinates}
+                        countryName={countryName} // Pass the country name to HuntForm
+                    />
                 </div>
                 <div className="absolute top-0 left-0 z-10 m-4">
                     <ExistingHunts hunts={hunts} />
                 </div>
                 <Messages message={message} />
             </div>
+            {showConfirm && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                        <p className="mb-4">Are you sure you want to set this location: {countryName}?</p>
+                        <div className="flex justify-center space-x-4">
+                            <button
+                                className="px-4 py-2 bg-green-500 text-white rounded"
+                                onClick={confirmLocation}
+                            >
+                                Yes
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-red-500 text-white rounded"
+                                onClick={() => setShowConfirm(false)}
+                            >
+                                No
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Footer />
         </div>
     )
