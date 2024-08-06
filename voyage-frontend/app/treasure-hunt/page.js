@@ -136,13 +136,15 @@ const TreasureHunt = () => {
     }
   };
   
+  const generateSignedMessage = async (answerString) => {
+    // Generate the hash
+    const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(answerString));
   
+    // Sign the hash using the connected wallet
+    const signedMessage = await signer.signMessage(ethers.utils.arrayify(hash));
+    return signedMessage;
+  };
   
-  
-  
-  
-  
-
   const handleGuessSubmit = async (e) => {
     e.preventDefault();
     if (!contract) {
@@ -154,10 +156,18 @@ const TreasureHunt = () => {
       return;
     }
   
+    setLoading(true); // Start loading state
+    setMessage(""); // Clear any previous messages
+  
     try {
-      const guess = guessLocation;
-      const transaction = await contract.submitAnswer(guess); // Pass only the guess as an argument
+      const signedMessage = await generateSignedMessage(guessLocation);
+  
+      console.log("Submitting answer...");
+      const transaction = await contract.submitAnswer(signedMessage); // Only pass the signed message
+  
+      console.log("Waiting for transaction confirmation...");
       await transaction.wait();
+  
       setMessage("Congratulations! You found the treasure!");
       setConfetti(true);
       setPopupMessage("Your guess was correct!");
@@ -165,17 +175,31 @@ const TreasureHunt = () => {
       setIsPopupOpen(true);
     } catch (error) {
       console.error("Error submitting guess:", error);
-      setMessage("Incorrect answer or error occurred. Try again!");
-      setPopupMessage("Incorrect answer. Please try again!");
+  
+      let errorMessage = "An error occurred. Please try again!";
+      if (error.code === ethers.errors.INSUFFICIENT_FUNDS) {
+        errorMessage = "Insufficient funds to pay for gas.";
+      } else if (error.code === ethers.errors.NONCE_EXPIRED) {
+        errorMessage = "Nonce has expired. Please refresh and try again.";
+      } else if (error.code === ethers.errors.REPLACEMENT_UNDERPRICED) {
+        errorMessage = "Transaction replaced with a lower gas price. Please try again with a higher gas price.";
+      } else if (error.data && error.data.message) {
+        errorMessage = error.data.message;
+      }
+  
+      setMessage(errorMessage);
+      setPopupMessage("Incorrect answer or error occurred. Try again!");
       setIsCorrect(false);
       setIsPopupOpen(true);
+    } finally {
+      setLoading(false); // End loading state
     }
   
     setGuessLocation("");
     setShowConfirm(false);
   };
   
-
+  
   const handleHuntClick = (index) => {
     setCurrentClueIndex(index);
     setMessage('');
