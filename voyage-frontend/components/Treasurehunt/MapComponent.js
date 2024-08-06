@@ -50,6 +50,7 @@ const MapComponent = ({ hunts, currentClueIndex, handleHuntClick, setGuessLocati
   }, [hunts, currentClueIndex, handleHuntClick]);
 
   return <div ref={mapContainer} className="map-container" style={{ height: '100%', width: '100%' }} />;
+  
 };
 
 export default MapComponent;
