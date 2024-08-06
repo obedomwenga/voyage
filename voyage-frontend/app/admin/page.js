@@ -132,14 +132,19 @@ const AdminPanel = () => {
                 const huntCount = await voyageContract.huntCount()
                 const huntsArray = []
 
-                for (let i = 0; i < huntCount; i++) {
+                // Start fetching hunts from nonce 1
+                for (let i = 1; i <= huntCount; i++) {
                     const huntInfo = await voyageContract.huntInfo(i)
                     const { nonce, clue, start, solved, winner } = huntInfo
 
                     huntsArray.push({
                         id: nonce.toString(),
                         clue,
-                        startTime: new Date(start.toNumber() * 1000).toLocaleString(),
+                        // Display human-readable time or indicate if not started
+                        startTime:
+                            start.toNumber() > 0
+                                ? new Date(start.toNumber() * 1000).toLocaleString()
+                                : "Not started",
                         solved,
                         winner: winner === ethers.constants.AddressZero ? null : winner,
                     })

@@ -13,11 +13,15 @@ const HuntDetails = ({
         return <div>Loading...</div> // Handle case where hunt is undefined
     }
 
+    // Assuming the token has 18 decimals (common for ERC20 tokens)
+    const tokenDecimals = 18
+    const readableReward = parseFloat(hunt.Rewards) / Math.pow(10, tokenDecimals)
+
     return (
         <div className="p-4 text-white bg-black bg-opacity-75 rounded shadow-md">
             <h2 className="mb-2 text-lg font-bold">Treasure Hunt</h2>
             <p className="mb-4">Check out the riddle below!</p>
-            <p className="mb-4">Reward: {hunt.Rewards} VOY</p> {/* Display the reward amount */}
+            <p className="mb-4">Reward: {readableReward} VOY</p> {/* Display the reward amount */}
             {hunt.URL ? (
                 <div className="mb-4">
                     <Image src={hunt.URL} alt="Treasure Hunt Clue" width={320} height={240} />
