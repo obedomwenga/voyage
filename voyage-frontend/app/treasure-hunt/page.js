@@ -20,6 +20,8 @@ const MapComponent = dynamic(() => import("../../components/Treasurehunt/MapComp
 const TreasureHunt = () => {
     const [currentClueIndex, setCurrentClueIndex] = useState(null)
     const [guessLocation, setGuessLocation] = useState("")
+    const [countryName, setCountryName] = useState("") // State for country name
+    const [answer, setAnswer] = useState("") // State for the answer input
     const [showConfirm, setShowConfirm] = useState(false)
     const [message, setMessage] = useState("")
     const [showWelcome, setShowWelcome] = useState(true)
@@ -167,8 +169,8 @@ const TreasureHunt = () => {
             setMessage("Please connect your wallet first.")
             return
         }
-        if (!guessLocation) {
-            setMessage("Please select a location on the map.")
+        if (!answer) {
+            setMessage("Please enter an answer.")
             return
         }
 
@@ -184,7 +186,8 @@ const TreasureHunt = () => {
                 return
             }
 
-            const transaction = await contract.submitAnswer(guessLocation)
+            // Submit the answer
+            const transaction = await contract.submitAnswer(answer)
             await transaction.wait()
             setMessage("Congratulations! You found the treasure!")
             setConfetti(true)
@@ -200,6 +203,8 @@ const TreasureHunt = () => {
         }
 
         setGuessLocation("")
+        setCountryName("") // Clear country name
+        setAnswer("") // Clear answer
         setShowConfirm(false)
     }
 
@@ -210,6 +215,20 @@ const TreasureHunt = () => {
             setMessage("")
             setConfetti(false)
         }
+    }
+
+    const handleAnswerChange = (e) => {
+        setAnswer(e.target.value)
+    }
+
+    const handleMapClick = (countryName, coords) => {
+        setCountryName(countryName)
+        setShowConfirm(true)
+    }
+
+    const confirmAnswer = () => {
+        setAnswer(countryName)
+        setShowConfirm(false)
     }
 
     const handleClosePopup = () => {
@@ -234,6 +253,8 @@ const TreasureHunt = () => {
                     handleHuntClick={handleHuntClick}
                     setGuessLocation={setGuessLocation}
                     setShowConfirm={setShowConfirm}
+                    setCountryName={setCountryName}
+                    handleMapClick={handleMapClick} // Use this instead of setCountryName directly
                 />
                 <div className="absolute top-0 left-0 w-full max-w-md p-4 bg-black bg-opacity-75 rounded shadow-md">
                     {hunts.length > 0 ? (
@@ -246,11 +267,12 @@ const TreasureHunt = () => {
                         ) : (
                             <HuntDetails
                                 hunt={hunts[currentClueIndex]}
-                                guess={guessLocation}
-                                setGuess={setGuessLocation}
+                                guess={answer} // Use answer state
+                                setGuess={setAnswer}
                                 handleGuessSubmit={handleGuessSubmit}
                                 message={message}
                                 setCurrentClueIndex={setCurrentClueIndex}
+                                onAnswerChange={handleAnswerChange} // Handler for answer input
                             />
                         )
                     ) : (
@@ -258,20 +280,24 @@ const TreasureHunt = () => {
                     )}
                 </div>
                 {showConfirm && (
-                    <div className="absolute bottom-0 left-0 p-4 bg-white bg-opacity-75 rounded shadow-md">
-                        <p>Are you sure you want to submit this location?</p>
-                        <button
-                            className="px-4 py-2 bg-green-500 rounded"
-                            onClick={handleGuessSubmit}
-                        >
-                            Yes
-                        </button>
-                        <button
-                            className="px-4 py-2 bg-red-500 rounded"
-                            onClick={() => setShowConfirm(false)}
-                        >
-                            No
-                        </button>
+                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                            <p className="mb-4">Are you sure you want to use this location: {countryName}?</p>
+                            <div className="flex justify-center space-x-4">
+                                <button
+                                    className="px-4 py-2 bg-green-500 text-white rounded"
+                                    onClick={confirmAnswer}
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    className="px-4 py-2 bg-red-500 text-white rounded"
+                                    onClick={() => setShowConfirm(false)}
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
                 {message && (
