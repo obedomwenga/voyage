@@ -14,11 +14,13 @@ async function main() {
         const gasLimit = ethers.utils.hexlify(100000); // 100,000 gas units
 
         const tx = await VOY.transfer(recipient, amount, { gasLimit });
+
         await tx.wait();
 
         console.log(`Sent ${ethers.utils.formatUnits(amount, 18)} VOY tokens to ${recipient}`);
     } catch (error) {
         console.error("Error sending VOY tokens:", error);
+        
     }
 }
 
