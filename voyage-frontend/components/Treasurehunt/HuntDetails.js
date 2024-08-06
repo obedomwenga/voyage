@@ -12,11 +12,14 @@ const HuntDetails = ({
     const [currentTime, setCurrentTime] = useState(new Date())
 
     useEffect(() => {
+        if (!hunt || !hunt.startTime) return
+
         // Update current time every second
         const timerId = setInterval(() => setCurrentTime(new Date()), 1000)
 
-        return () => clearInterval(timerId) // Cleanup interval on component unmount
-    }, [])
+        // Cleanup interval on component unmount
+        return () => clearInterval(timerId)
+    }, [hunt])
 
     if (!hunt) {
         return <div>Loading...</div> // Handle case where hunt is undefined
@@ -31,19 +34,51 @@ const HuntDetails = ({
     const isValidStartTime = !isNaN(startTime.getTime())
     const endTime = isValidStartTime ? new Date(startTime.getTime() + 4 * 60 * 60 * 1000) : null
 
-    // Convert times to human-readable formats
-    const startTimeReadable = isValidStartTime ? startTime.toLocaleString() : "Invalid start time"
-    const endTimeReadable = endTime ? endTime.toLocaleString() : "Invalid end time"
-    const currentTimeReadable = currentTime.toLocaleString()
+    // Options for consistent date and time formatting
+    const options = {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false, // Use 24-hour time format
+    }
+
+    // Convert times to human-readable formats with consistent options
+    const startTimeReadable = isValidStartTime
+        ? startTime.toLocaleString(undefined, options)
+        : "Invalid start time"
+    const endTimeReadable = endTime
+        ? endTime.toLocaleString(undefined, options)
+        : "Invalid end time"
+    const currentTimeReadable = currentTime.toLocaleString(undefined, options)
 
     return (
         <div className="p-4 text-white bg-black bg-opacity-75 rounded shadow-md">
             <h2 className="mb-2 text-lg font-bold">Treasure Hunt</h2>
             <p className="mb-4">Check out the riddle below!</p>
             <p className="mb-2">Reward: {readableReward} VOY</p> {/* Display the reward amount */}
-            <p className="mb-4">Start Time: {startTimeReadable}</p> {/* Display the start time */}
-            <p className="mb-4">End Time: {endTimeReadable}</p> {/* Display the end time */}
-            <p className="mb-4">Current Time: {currentTimeReadable}</p>{" "}
+            <p className="mb-4">
+                <span role="img" aria-label="start time">
+                    🕒
+                </span>{" "}
+                Start Time: {startTimeReadable}
+            </p>{" "}
+            {/* Display the start time */}
+            <p className="mb-4">
+                <span role="img" aria-label="end time">
+                    ⏰
+                </span>{" "}
+                End Time: {endTimeReadable}
+            </p>{" "}
+            {/* Display the end time */}
+            <p className="mb-4">
+                <span role="img" aria-label="current time">
+                    🕔
+                </span>{" "}
+                Current Time: {currentTimeReadable}
+            </p>{" "}
             {/* Display the current time */}
             {hunt.URL ? (
                 <div className="mb-4">
