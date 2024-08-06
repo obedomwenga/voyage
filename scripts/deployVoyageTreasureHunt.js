@@ -17,20 +17,20 @@ async function main() {
 
     console.log("VoyageTreasureHunt deployed to:", voyageTreasureHunt.address);
 
-    // Copy artifact to frontend
-    const source = path.join(__dirname, '../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json');
-    if (!fs.existsSync(source)) {
-        throw new Error(`Artifact not found at ${source}`);
-    }
+    // // Copy artifact to frontend
+    // const source = path.join(__dirname, '../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json');
+    // if (!fs.existsSync(source)) {
+    //     throw new Error(`Artifact not found at ${source}`);
+    // }
 
-    const destinationDir = path.join(__dirname, '../../voyage-frontend/artifacts');
-    if (!fs.existsSync(destinationDir)) {
-        fs.mkdirSync(destinationDir, { recursive: true });
-    }
+    // const destinationDir = path.join(__dirname, '../../voyage-frontend/artifacts');
+    // if (!fs.existsSync(destinationDir)) {
+    //     fs.mkdirSync(destinationDir, { recursive: true });
+    // }
 
-    const destination = path.join(destinationDir, 'VoyageTreasureHunt.json');
-    fs.copyFileSync(source, destination);
-    console.log("Artifact copied to frontend directory");
+    // const destination = path.join(destinationDir, 'VoyageTreasureHunt.json');
+    // fs.copyFileSync(source, destination);
+    // console.log("Artifact copied to frontend directory");
 }
 
 main()
