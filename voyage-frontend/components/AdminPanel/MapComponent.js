@@ -41,30 +41,33 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
                 const response = await geocoder
                     .reverseGeocode({
                         query: coords,
-                        types: ["poi", "poi.landmark", "place", "locality", "neighborhood"], // Prioritize POIs and landmarks
+                        types: ["poi.landmark", "poi", "place", "locality", "neighborhood"], // Prioritize landmarks and POIs
                     })
                     .send()
 
                 let locationName = "Unknown location"
 
                 if (response.body.features.length > 0) {
-                    // Prioritize POIs and landmarks
-                    const poiFeature = response.body.features.find(
-                        (feature) =>
-                            feature.place_type.includes("poi") ||
-                            feature.place_type.includes("poi.landmark")
+                    // Find the most specific feature (landmark or POI)
+                    const landmarkFeature = response.body.features.find((feature) =>
+                        feature.place_type.includes("poi.landmark")
+                    )
+                    const poiFeature = response.body.features.find((feature) =>
+                        feature.place_type.includes("poi")
                     )
                     const placeFeature = response.body.features.find((feature) =>
                         feature.place_type.includes("place")
                     )
 
-                    if (poiFeature) {
+                    if (landmarkFeature) {
+                        locationName = landmarkFeature.text
+                    } else if (poiFeature) {
                         locationName = poiFeature.text
                     } else if (placeFeature) {
                         locationName = placeFeature.text
                     }
 
-                    // Add context for better clarity
+                    // Add context (like city or region) to the location name
                     const context = response.body.features[0].context || []
                     const contextText = context.map((c) => c.text).join(", ")
                     if (contextText) {
