@@ -15,12 +15,12 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
     useEffect(() => {
         mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 
-        // Initialize the map
+        // Initialize the map with a lower zoom level
         map.current = new mapboxgl.Map({
             container: mapContainerRef.current,
             style: "mapbox://styles/mapbox/streets-v11",
-            center: [0, 0],
-            zoom: 2,
+            center: [0, 0], // Centered on the world map
+            zoom: 2, // Lower zoom level for a broader view
         })
 
         // Add click event listener
