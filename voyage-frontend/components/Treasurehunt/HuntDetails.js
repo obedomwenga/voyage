@@ -25,13 +25,23 @@ const HuntDetails = ({
         return <div>Loading...</div> // Handle case where hunt is undefined
     }
 
-    // Assuming the token has 18 decimals (common for ERC20 tokens)
-    const tokenDecimals = 18
-    const readableReward = parseFloat(hunt.Rewards) / Math.pow(10, tokenDecimals)
+    // Log the start time for debugging
+    console.log("Raw hunt.startTime:", hunt.startTime)
 
-    // Parse the start time and calculate the end time (4 hours later)
-    const startTime = new Date(hunt.startTime)
+    // Manual Parsing of Date String (assuming format "DD/MM/YYYY, HH:MM:SS")
+    const parseDateString = (dateString) => {
+        const [datePart, timePart] = dateString.split(", ")
+        const [day, month, year] = datePart.split("/").map(Number)
+        const [hours, minutes, seconds] = timePart.split(":").map(Number)
+
+        return new Date(year, month - 1, day, hours, minutes, seconds)
+    }
+
+    const startTime = parseDateString(hunt.startTime)
     const isValidStartTime = !isNaN(startTime.getTime())
+
+    console.log("Parsed startTime:", startTime)
+
     const endTime = isValidStartTime ? new Date(startTime.getTime() + 4 * 60 * 60 * 1000) : null
 
     // Options for consistent date and time formatting
@@ -58,28 +68,25 @@ const HuntDetails = ({
         <div className="p-4 text-white bg-black bg-opacity-75 rounded shadow-md">
             <h2 className="mb-2 text-lg font-bold">Treasure Hunt</h2>
             <p className="mb-4">Check out the riddle below!</p>
-            <p className="mb-2">Reward: {readableReward} VOY</p> {/* Display the reward amount */}
+            <p className="mb-2">Reward: {parseFloat(hunt.Rewards) / Math.pow(10, 18)} VOY</p>
             <p className="mb-4">
                 <span role="img" aria-label="start time">
                     🕒
                 </span>{" "}
                 Start Time: {startTimeReadable}
-            </p>{" "}
-            {/* Display the start time */}
+            </p>
             <p className="mb-4">
                 <span role="img" aria-label="end time">
                     ⏰
                 </span>{" "}
                 End Time: {endTimeReadable}
-            </p>{" "}
-            {/* Display the end time */}
+            </p>
             <p className="mb-4">
                 <span role="img" aria-label="current time">
                     🕔
                 </span>{" "}
                 Current Time: {currentTimeReadable}
-            </p>{" "}
-            {/* Display the current time */}
+            </p>
             {hunt.URL ? (
                 <div className="mb-4">
                     <Image src={hunt.URL} alt="Treasure Hunt Clue" width={320} height={240} />
