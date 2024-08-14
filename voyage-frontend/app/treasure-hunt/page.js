@@ -264,7 +264,6 @@ const TreasureHunt = () => {
         }
 
         try {
-            // Set the amount of tokens to approve for the transaction (e.g., 100 tokens)
             const amountToApprove = ethers.utils.parseUnits("100", 18)
             await approveToken(amountToApprove)
 
@@ -278,12 +277,10 @@ const TreasureHunt = () => {
                 return
             }
 
-            // Submit the answer
             const transaction = await contract.submitAnswer(answer)
             await transaction.wait()
             setMessage("Answer submitted. Waiting for verification...")
 
-            // Poll the contract state to check if the answer was correct
             const intervalId = setInterval(async () => {
                 try {
                     const hunt = await contract.treasureHunts(activeHuntNonce)
@@ -300,7 +297,6 @@ const TreasureHunt = () => {
                         }
                         setIsPopupOpen(true)
                     } else {
-                        // Check if the transaction was confirmed but the hunt is not solved
                         const receipt = await provider.getTransactionReceipt(transaction.hash)
                         if (receipt && receipt.confirmations > 0) {
                             clearInterval(intervalId)

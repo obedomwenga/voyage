@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React from "react"
 import Image from "next/image"
 
 const HuntDetails = ({
@@ -9,18 +9,6 @@ const HuntDetails = ({
     message,
     setCurrentClueIndex,
 }) => {
-    const [currentTime, setCurrentTime] = useState(new Date())
-
-    useEffect(() => {
-        if (!hunt || !hunt.startTime) return
-
-        // Update current time every second
-        const timerId = setInterval(() => setCurrentTime(new Date()), 1000)
-
-        // Cleanup interval on component unmount
-        return () => clearInterval(timerId)
-    }, [hunt])
-
     if (!hunt) {
         return <div>Loading...</div> // Handle case where hunt is undefined
     }
@@ -42,8 +30,6 @@ const HuntDetails = ({
 
     console.log("Parsed startTime:", startTime)
 
-    const endTime = isValidStartTime ? new Date(startTime.getTime() + 4 * 60 * 60 * 1000) : null
-
     // Options for consistent date and time formatting
     const options = {
         year: "numeric",
@@ -55,14 +41,10 @@ const HuntDetails = ({
         hour12: false, // Use 24-hour time format
     }
 
-    // Convert times to human-readable formats with consistent options
+    // Convert start time to a human-readable format
     const startTimeReadable = isValidStartTime
         ? startTime.toLocaleString(undefined, options)
         : "Invalid start time"
-    const endTimeReadable = endTime
-        ? endTime.toLocaleString(undefined, options)
-        : "Invalid end time"
-    const currentTimeReadable = currentTime.toLocaleString(undefined, options)
 
     return (
         <div className="p-4 text-white bg-black bg-opacity-75 rounded shadow-md">
@@ -76,16 +58,10 @@ const HuntDetails = ({
                 Start Time: {startTimeReadable}
             </p>
             <p className="mb-4">
-                <span role="img" aria-label="end time">
+                <span role="img" aria-label="expiration time">
                     ⏰
                 </span>{" "}
-                End Time: {endTimeReadable}
-            </p>
-            <p className="mb-4">
-                <span role="img" aria-label="current time">
-                    🕔
-                </span>{" "}
-                Current Time: {currentTimeReadable}
+                Hunt expires in 4 hours
             </p>
             {hunt.URL ? (
                 <div className="mb-4">
