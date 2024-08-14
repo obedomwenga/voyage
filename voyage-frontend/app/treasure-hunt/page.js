@@ -121,6 +121,47 @@ const TreasureHunt = () => {
         if (window.ethereum) {
             setLoading(true)
             try {
+                const { chainId } = await window.ethereum.request({ method: "eth_chainId" })
+                const fantomTestnetChainId = "0xfa2" // Fantom Testnet chain ID in hexadecimal
+
+                if (chainId !== fantomTestnetChainId) {
+                    try {
+                        await window.ethereum.request({
+                            method: "wallet_switchEthereumChain",
+                            params: [{ chainId: fantomTestnetChainId }],
+                        })
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            try {
+                                await window.ethereum.request({
+                                    method: "wallet_addEthereumChain",
+                                    params: [
+                                        {
+                                            chainId: fantomTestnetChainId,
+                                            chainName: "Fantom Testnet",
+                                            rpcUrls: ["https://rpc.testnet.fantom.network/"],
+                                            nativeCurrency: {
+                                                name: "Test FTM",
+                                                symbol: "tFTM",
+                                                decimals: 18,
+                                            },
+                                            blockExplorerUrls: ["https://testnet.ftmscan.com"],
+                                        },
+                                    ],
+                                })
+                            } catch (addError) {
+                                console.error("Error adding Fantom Testnet:", addError)
+                                alert("Please manually switch to Fantom Testnet in your MetaMask.")
+                                return
+                            }
+                        } else {
+                            console.error("Error switching to Fantom Testnet:", switchError)
+                            alert("Please manually switch to Fantom Testnet in your MetaMask.")
+                            return
+                        }
+                    }
+                }
+
                 await window.ethereum.request({ method: "eth_requestAccounts" })
                 const newProvider = new ethers.providers.Web3Provider(window.ethereum)
                 const newSigner = newProvider.getSigner()
@@ -365,17 +406,19 @@ const TreasureHunt = () => {
                 </div>
                 {showConfirm && (
                     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                        <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-                            <p className="mb-4">Are you sure you want to use this location: {countryName}?</p>
+                        <div className="p-6 text-center bg-white rounded-lg shadow-lg">
+                            <p className="mb-4">
+                                Are you sure you want to use this location: {countryName}?
+                            </p>
                             <div className="flex justify-center space-x-4">
                                 <button
-                                    className="px-4 py-2 bg-green-500 text-white rounded"
+                                    className="px-4 py-2 text-white bg-green-500 rounded"
                                     onClick={confirmAnswer}
                                 >
                                     Yes
                                 </button>
                                 <button
-                                    className="px-4 py-2 bg-red-500 text-white rounded"
+                                    className="px-4 py-2 text-white bg-red-500 rounded"
                                     onClick={() => setShowConfirm(false)}
                                 >
                                     No
