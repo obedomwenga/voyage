@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "@mapbox/mapbox-sdk/services/geocoding";
 
@@ -9,10 +9,12 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
     const map = useRef(null);
     const marker = useRef(null);
 
-    // Initialize geocoding service
-    const geocoder = MapboxGeocoder({
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    });
+    // Memoize geocoding service
+    const geocoder = useMemo(() => {
+        return MapboxGeocoder({
+            accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
+        });
+    }, []); // Only create the geocoder once
 
     useEffect(() => {
         mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -89,7 +91,7 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
         return () => {
             if (map.current) map.current.remove();
         };
-    }, [setCoordinates, setLocationName, handleMapClick]);
+    }, [setCoordinates, setLocationName, handleMapClick, geocoder]); // geocoder is now stable due to useMemo
 
     return <div ref={mapContainerRef} className="w-full h-full"></div>;
 };

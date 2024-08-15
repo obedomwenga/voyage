@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { ethers } from "ethers"
 import axios from "axios"
+import Image from "next/image" 
 import voyageAbi from "../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
 
 
@@ -27,7 +28,7 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
             newAnswers[activeHuntIndex] = locationName;
             setAnswers(newAnswers);
         }
-    }, [locationName]);
+    }, [locationName, activeHuntIndex, answers]);
 
     const handleFileUpload = async (e, index) => {
         const file = e.target.files[0];
@@ -55,7 +56,7 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
             const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(answerString));
             console.log("Hash:", hash);
 
-            const privateKey = process.env.REACT_APP_PRIVATE_KEY; // Use environment variable
+            const privateKey = process.env.PRIVATE_KEY; // Use environment variable
             const wallet = new ethers.Wallet(privateKey);
             const signedMessage = await wallet.signMessage(ethers.utils.arrayify(hash));
             console.log("Signed Message:", signedMessage);
@@ -156,9 +157,11 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
                             />
                             {imageUrls[index] && (
                                 <div className="mt-4">
-                                    <img
+                                    <Image
                                         src={imageUrls[index]}
                                         alt="Clue"
+                                        width={320}
+                                        height={240}
                                         className="w-full h-auto rounded-md"
                                     />
                                 </div>
