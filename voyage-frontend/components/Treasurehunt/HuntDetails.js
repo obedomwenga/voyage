@@ -16,13 +16,21 @@ const HuntDetails = ({
     // Log the start time for debugging
     console.log("Raw hunt.startTime:", hunt.startTime)
 
-    // Manual Parsing of Date String (assuming format "DD/MM/YYYY, HH:MM:SS")
+    // Manual Parsing of Date String (format "MM/DD/YYYY, HH:MM:SS AM/PM")
     const parseDateString = (dateString) => {
-        const [datePart, timePart] = dateString.split(", ")
-        const [day, month, year] = datePart.split("/").map(Number)
-        const [hours, minutes, seconds] = timePart.split(":").map(Number)
+        const [datePart, timePart] = dateString.split(", ");
+        const [month, day, year] = datePart.split("/").map(Number);
+        const [time, modifier] = timePart.split(" ");
+        let [hours, minutes, seconds] = time.split(":").map(Number);
 
-        return new Date(year, month - 1, day, hours, minutes, seconds)
+        // Convert 12-hour format to 24-hour format
+        if (modifier === "PM" && hours < 12) {
+            hours += 12;
+        } else if (modifier === "AM" && hours === 12) {
+            hours = 0;
+        }
+
+        return new Date(year, month - 1, day, hours, minutes, seconds);
     }
 
     const startTime = parseDateString(hunt.startTime)
@@ -38,7 +46,7 @@ const HuntDetails = ({
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false, // Use 24-hour time format
+        hour12: true, // Use 12-hour format for consistency with the input format
     }
 
     // Convert start time to a human-readable format
@@ -96,4 +104,4 @@ const HuntDetails = ({
     )
 }
 
-export default HuntDetails
+export default HuntDetails;
