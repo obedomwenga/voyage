@@ -20,6 +20,7 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
     }))
 
     useEffect(() => {
+        
         // Update the answer for the active hunt index when the locationName changes
         if (locationName) {
             const newAnswers = [...answers]
