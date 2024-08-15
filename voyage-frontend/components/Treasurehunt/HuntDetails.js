@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React from "react"
 import Image from "next/image"
 
 const HuntDetails = ({
@@ -9,30 +9,34 @@ const HuntDetails = ({
     message,
     setCurrentClueIndex,
 }) => {
-    const [currentTime, setCurrentTime] = useState(new Date())
-
-    useEffect(() => {
-        if (!hunt || !hunt.startTime) return
-
-        // Update current time every second
-        const timerId = setInterval(() => setCurrentTime(new Date()), 1000)
-
-        // Cleanup interval on component unmount
-        return () => clearInterval(timerId)
-    }, [hunt])
-
     if (!hunt) {
         return <div>Loading...</div> // Handle case where hunt is undefined
     }
 
-    // Assuming the token has 18 decimals (common for ERC20 tokens)
-    const tokenDecimals = 18
-    const readableReward = parseFloat(hunt.Rewards) / Math.pow(10, tokenDecimals)
+    // Log the start time for debugging
+    console.log("Raw hunt.startTime:", hunt.startTime)
 
-    // Parse the start time and calculate the end time (4 hours later)
-    const startTime = new Date(hunt.startTime)
+    // Manual Parsing of Date String (format "MM/DD/YYYY, HH:MM:SS AM/PM")
+    const parseDateString = (dateString) => {
+        const [datePart, timePart] = dateString.split(", ");
+        const [month, day, year] = datePart.split("/").map(Number);
+        const [time, modifier] = timePart.split(" ");
+        let [hours, minutes, seconds] = time.split(":").map(Number);
+
+        // Convert 12-hour format to 24-hour format
+        if (modifier === "PM" && hours < 12) {
+            hours += 12;
+        } else if (modifier === "AM" && hours === 12) {
+            hours = 0;
+        }
+
+        return new Date(year, month - 1, day, hours, minutes, seconds);
+    }
+
+    const startTime = parseDateString(hunt.startTime)
     const isValidStartTime = !isNaN(startTime.getTime())
-    const endTime = isValidStartTime ? new Date(startTime.getTime() + 4 * 60 * 60 * 1000) : null
+
+    console.log("Parsed startTime:", startTime)
 
     // Options for consistent date and time formatting
     const options = {
@@ -42,44 +46,31 @@ const HuntDetails = ({
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false, // Use 24-hour time format
+        hour12: true, // Use 12-hour format for consistency with the input format
     }
 
-    // Convert times to human-readable formats with consistent options
+    // Convert start time to a human-readable format
     const startTimeReadable = isValidStartTime
         ? startTime.toLocaleString(undefined, options)
         : "Invalid start time"
-    const endTimeReadable = endTime
-        ? endTime.toLocaleString(undefined, options)
-        : "Invalid end time"
-    const currentTimeReadable = currentTime.toLocaleString(undefined, options)
 
     return (
         <div className="p-4 text-white bg-black bg-opacity-75 rounded shadow-md">
             <h2 className="mb-2 text-lg font-bold">Treasure Hunt</h2>
             <p className="mb-4">Check out the riddle below!</p>
-            <p className="mb-2">Reward: {readableReward} VOY</p> {/* Display the reward amount */}
+            <p className="mb-2">Reward: {parseFloat(hunt.Rewards) / Math.pow(10, 18)} VOY</p>
             <p className="mb-4">
                 <span role="img" aria-label="start time">
                     🕒
                 </span>{" "}
                 Start Time: {startTimeReadable}
-            </p>{" "}
-            {/* Display the start time */}
+            </p>
             <p className="mb-4">
-                <span role="img" aria-label="end time">
+                <span role="img" aria-label="expiration time">
                     ⏰
                 </span>{" "}
-                End Time: {endTimeReadable}
-            </p>{" "}
-            {/* Display the end time */}
-            <p className="mb-4">
-                <span role="img" aria-label="current time">
-                    🕔
-                </span>{" "}
-                Current Time: {currentTimeReadable}
-            </p>{" "}
-            {/* Display the current time */}
+                Hunt expires in 4 hours
+            </p>
             {hunt.URL ? (
                 <div className="mb-4">
                     <Image src={hunt.URL} alt="Treasure Hunt Clue" width={320} height={240} />
@@ -113,4 +104,4 @@ const HuntDetails = ({
     )
 }
 
-export default HuntDetails
+export default HuntDetails;

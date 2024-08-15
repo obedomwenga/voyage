@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { ethers } from "ethers"
 import Navbar from "../../components/Treasurehunt/Navbar"
 import Footer from "../../components/Landingpage/Footer"
@@ -15,11 +15,12 @@ const AdminPanel = () => {
     const [message, setMessage] = useState("")
     const [hunts, setHunts] = useState([])
     const [coordinates, setCoordinates] = useState([null, null])
-    const [countryName, setCountryName] = useState("") // New state for country name
+    const [locationName, setLocationName] = useState("") // Changed from cityName to locationName
     const [showConfirm, setShowConfirm] = useState(false)
     const [account, setAccount] = useState(null)
     const [balance, setBalance] = useState({ eth: 0, voy: 0 })
     const [loading, setLoading] = useState(false)
+    const huntFormRef = useRef(null)
 
     useEffect(() => {
         if (window.ethereum && account) {
@@ -33,13 +34,13 @@ const AdminPanel = () => {
             try {
                 setLoading(true)
                 const { chainId } = await window.ethereum.request({ method: "eth_chainId" })
-                const bnbTestnetChainId = "0x61" // BNB Testnet chain ID in hexadecimal
+                const fantomTestnetChainId = "0xfa2" // Fantom Testnet chain ID in hexadecimal
 
-                if (chainId !== bnbTestnetChainId) {
+                if (chainId !== fantomTestnetChainId) {
                     try {
                         await window.ethereum.request({
                             method: "wallet_switchEthereumChain",
-                            params: [{ chainId: bnbTestnetChainId }],
+                            params: [{ chainId: fantomTestnetChainId }],
                         })
                     } catch (switchError) {
                         if (switchError.code === 4902) {
@@ -48,28 +49,26 @@ const AdminPanel = () => {
                                     method: "wallet_addEthereumChain",
                                     params: [
                                         {
-                                            chainId: bnbTestnetChainId,
-                                            chainName: "BNB Testnet",
-                                            rpcUrls: [
-                                                "https://data-seed-prebsc-1-s1.binance.org:8545/",
-                                            ],
+                                            chainId: fantomTestnetChainId,
+                                            chainName: "Fantom Testnet",
+                                            rpcUrls: ["https://rpc.testnet.fantom.network/"],
                                             nativeCurrency: {
-                                                name: "Test BNB",
-                                                symbol: "tBNB",
+                                                name: "Test FTM",
+                                                symbol: "tFTM",
                                                 decimals: 18,
                                             },
-                                            blockExplorerUrls: ["https://testnet.bscscan.com"],
+                                            blockExplorerUrls: ["https://testnet.ftmscan.com"],
                                         },
                                     ],
                                 })
                             } catch (addError) {
-                                console.error("Error adding BNB Testnet:", addError)
-                                alert("Please manually switch to BNB Testnet in your MetaMask.")
+                                console.error("Error adding Fantom Testnet:", addError)
+                                alert("Please manually switch to Fantom Testnet in your MetaMask.")
                                 return
                             }
                         } else {
-                            console.error("Error switching to BNB Testnet:", switchError)
-                            alert("Please manually switch to BNB Testnet in your MetaMask.")
+                            console.error("Error switching to Fantom Testnet:", switchError)
+                            alert("Please manually switch to Fantom Testnet in your MetaMask.")
                             return
                         }
                     }
@@ -157,15 +156,19 @@ const AdminPanel = () => {
         }
     }
 
-    const handleMapClick = (countryName, coords) => {
-        setCountryName(countryName)
+    const handleMapClick = (locationName, coords) => {
+        setLocationName(locationName)
         setCoordinates(coords)
         setShowConfirm(true)
     }
 
     const confirmLocation = () => {
         setShowConfirm(false)
-        setMessage(`Location set to: ${countryName}`)
+        setMessage(`Location set to: ${locationName}`)
+
+        if (huntFormRef.current) {
+            huntFormRef.current.updateAnswer(locationName)
+        }
     }
 
     const handleNewHunt = async (newHunt) => {
@@ -184,14 +187,15 @@ const AdminPanel = () => {
             <div className="relative h-full">
                 <MapComponent
                     setCoordinates={setCoordinates}
-                    setCountryName={setCountryName}
+                    setLocationName={setLocationName}
                     handleMapClick={handleMapClick} // Pass handleMapClick to MapComponent
                 />
                 <div className="absolute top-0 right-0 z-10 m-4">
                     <HuntForm
+                        ref={huntFormRef}
                         handleNewHunt={handleNewHunt}
                         coordinates={coordinates}
-                        countryName={countryName} // Pass the country name to HuntForm
+                        locationName={locationName} // Pass the location name to HuntForm
                     />
                 </div>
                 <div className="absolute top-0 left-0 z-10 m-4">
@@ -201,17 +205,19 @@ const AdminPanel = () => {
             </div>
             {showConfirm && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-                        <p className="mb-4">Are you sure you want to set this location: {countryName}?</p>
+                    <div className="p-6 text-center bg-white rounded-lg shadow-lg">
+                        <p className="mb-4">
+                            Are you sure you want to set this location: {locationName}?
+                        </p>
                         <div className="flex justify-center space-x-4">
                             <button
-                                className="px-4 py-2 bg-green-500 text-white rounded"
+                                className="px-4 py-2 text-white bg-green-500 rounded"
                                 onClick={confirmLocation}
                             >
                                 Yes
                             </button>
                             <button
-                                className="px-4 py-2 bg-red-500 text-white rounded"
+                                className="px-4 py-2 text-white bg-red-500 rounded"
                                 onClick={() => setShowConfirm(false)}
                             >
                                 No

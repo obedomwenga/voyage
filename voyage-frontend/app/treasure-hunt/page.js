@@ -122,6 +122,47 @@ const TreasureHunt = () => {
         if (window.ethereum) {
             setLoading(true)
             try {
+                const { chainId } = await window.ethereum.request({ method: "eth_chainId" })
+                const fantomTestnetChainId = "0xfa2" // Fantom Testnet chain ID in hexadecimal
+
+                if (chainId !== fantomTestnetChainId) {
+                    try {
+                        await window.ethereum.request({
+                            method: "wallet_switchEthereumChain",
+                            params: [{ chainId: fantomTestnetChainId }],
+                        })
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            try {
+                                await window.ethereum.request({
+                                    method: "wallet_addEthereumChain",
+                                    params: [
+                                        {
+                                            chainId: fantomTestnetChainId,
+                                            chainName: "Fantom Testnet",
+                                            rpcUrls: ["https://rpc.testnet.fantom.network/"],
+                                            nativeCurrency: {
+                                                name: "Test FTM",
+                                                symbol: "tFTM",
+                                                decimals: 18,
+                                            },
+                                            blockExplorerUrls: ["https://testnet.ftmscan.com"],
+                                        },
+                                    ],
+                                })
+                            } catch (addError) {
+                                console.error("Error adding Fantom Testnet:", addError)
+                                alert("Please manually switch to Fantom Testnet in your MetaMask.")
+                                return
+                            }
+                        } else {
+                            console.error("Error switching to Fantom Testnet:", switchError)
+                            alert("Please manually switch to Fantom Testnet in your MetaMask.")
+                            return
+                        }
+                    }
+                }
+
                 await window.ethereum.request({ method: "eth_requestAccounts" })
                 const newProvider = new ethers.providers.Web3Provider(window.ethereum)
                 const newSigner = newProvider.getSigner()
@@ -224,7 +265,6 @@ const TreasureHunt = () => {
         }
 
         try {
-            // Set the amount of tokens to approve for the transaction (e.g., 100 tokens)
             const amountToApprove = ethers.utils.parseUnits("100", 18)
             await approveToken(amountToApprove)
 
@@ -238,12 +278,10 @@ const TreasureHunt = () => {
                 return
             }
 
-            // Submit the answer
             const transaction = await contract.submitAnswer(answer)
             await transaction.wait()
             setMessage("Answer submitted. Waiting for verification...")
 
-            // Poll the contract state to check if the answer was correct
             const intervalId = setInterval(async () => {
                 try {
                     const hunt = await contract.treasureHunts(activeHuntNonce)
@@ -260,7 +298,6 @@ const TreasureHunt = () => {
                         }
                         setIsPopupOpen(true)
                     } else {
-                        // Check if the transaction was confirmed but the hunt is not solved
                         const receipt = await provider.getTransactionReceipt(transaction.hash)
                         if (receipt && receipt.confirmations > 0) {
                             clearInterval(intervalId)

@@ -1,59 +1,97 @@
+"use client";
+
 import React, { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
-import MapboxGeocoder from '@mapbox/mapbox-sdk/services/geocoding';
+import MapboxGeocoder from "@mapbox/mapbox-sdk/services/geocoding";
 
-const MapComponent = ({ setCoordinates, setCountryName }) => {
-  const mapContainerRef = useRef(null);
-  const map = useRef(null);
-  const marker = useRef(null);
+const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
+    const mapContainerRef = useRef(null);
+    const map = useRef(null);
+    const marker = useRef(null);
 
-  // Initialize geocoding service
-  const geocoder = MapboxGeocoder({ accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN });
-
-  useEffect(() => {
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    map.current = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/streets-v11",
-      center: [0, 0],
-      zoom: 2,
+    // Initialize geocoding service
+    const geocoder = MapboxGeocoder({
+        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     });
 
-    map.current.on("click", async (e) => {
-      const coords = [e.lngLat.lng, e.lngLat.lat];
-      setCoordinates(coords);
+    useEffect(() => {
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-      // Remove previous marker if it exists
-      if (marker.current) {
-        marker.current.remove();
-      }
+        // Initialize the map with a lower zoom level
+        map.current = new mapboxgl.Map({
+            container: mapContainerRef.current,
+            style: "mapbox://styles/mapbox/streets-v11",
+            center: [0, 0], // Centered on the world map
+            zoom: 2, // Lower zoom level for a broader view
+        });
 
-      // Create a new marker at the clicked location
-      marker.current = new mapboxgl.Marker()
-        .setLngLat(coords)
-        .addTo(map.current);
+        // Add click event listener
+        map.current.on("click", async (e) => {
+            const coords = [e.lngLat.lng, e.lngLat.lat];
+            setCoordinates(coords);
 
-      // Reverse geocode to get country name
-      try {
-        const response = await geocoder.reverseGeocode({
-          query: coords,
-          types: ['country']
-        }).send();
-        const countryName = response.body.features[0]?.text || 'Unknown location';
-        setCountryName(countryName);
-      } catch (error) {
-        console.error('Error fetching country name:', error);
-        setCountryName('Error fetching location');
-      }
-    });
+            // Remove previous marker if it exists
+            if (marker.current) {
+                marker.current.remove();
+            }
 
-    return () => {
-      // Cleanup on unmount
-      map.current.remove();
-    };
-  }, [setCoordinates, setCountryName]);
+            // Create a new marker at the clicked location
+            marker.current = new mapboxgl.Marker().setLngLat(coords).addTo(map.current);
 
-  return <div ref={mapContainerRef} className="w-full h-full"></div>;
+            // Reverse geocode to get location name (cities, towns, points of interest, landmarks)
+            try {
+                const response = await geocoder
+                    .reverseGeocode({
+                        query: coords,
+                        types: ["poi.landmark", "poi", "place", "locality", "neighborhood"], // Prioritize landmarks and POIs
+                    })
+                    .send();
+
+                let locationName = "Unknown location";
+
+                if (response.body.features.length > 0) {
+                    // Find the most specific feature (landmark or POI)
+                    const landmarkFeature = response.body.features.find((feature) =>
+                        feature.place_type.includes("poi.landmark")
+                    );
+                    const poiFeature = response.body.features.find((feature) =>
+                        feature.place_type.includes("poi")
+                    );
+                    const placeFeature = response.body.features.find((feature) =>
+                        feature.place_type.includes("place")
+                    );
+
+                    if (landmarkFeature) {
+                        locationName = landmarkFeature.text;
+                    } else if (poiFeature) {
+                        locationName = poiFeature.text;
+                    } else if (placeFeature) {
+                        locationName = placeFeature.text;
+                    }
+
+                    // Add context (like city or region) to the location name
+                    const context = response.body.features[0].context || [];
+                    const contextText = context.map((c) => c.text).join(", ");
+                    if (contextText) {
+                        locationName = `${locationName}, ${contextText}`;
+                    }
+                }
+
+                setLocationName(locationName);
+                handleMapClick(locationName, coords); // Call the handleMapClick function
+            } catch (error) {
+                console.error("Error fetching location name:", error);
+                setLocationName("Error fetching location");
+            }
+        });
+
+        // Cleanup on unmount
+        return () => {
+            if (map.current) map.current.remove();
+        };
+    }, [setCoordinates, setLocationName, handleMapClick]);
+
+    return <div ref={mapContainerRef} className="w-full h-full"></div>;
 };
 
 export default MapComponent;
