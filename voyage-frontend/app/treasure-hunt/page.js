@@ -9,8 +9,8 @@ import HuntList from "../../components/Treasurehunt/HuntList"
 import HuntDetails from "../../components/Treasurehunt/HuntDetails"
 import ResultPopup from "../../components/Treasurehunt/ResultPopup"
 import Confetti from "react-confetti"
-import contractABI from "../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
-import voyTokenABI from "../../artifacts/contracts/voyToken.sol/ERC20Token.json"
+import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
+import voyTokenABI from "../../../artifacts/contracts/voyToken.sol/ERC20Token.json"
 import dynamic from "next/dynamic"
 import Head from "next/head"
 
@@ -409,19 +409,19 @@ const TreasureHunt = () => {
                     </div>
                     {showConfirm && (
                         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                            <div className="p-6 text-center bg-white rounded-lg shadow-lg">
                                 <p className="mb-4">
                                     Are you sure you want to use this location: {countryName}?
                                 </p>
                                 <div className="flex justify-center space-x-4">
                                     <button
-                                        className="px-4 py-2 bg-green-500 text-white rounded"
+                                        className="px-4 py-2 text-white bg-green-500 rounded"
                                         onClick={confirmAnswer}
                                     >
                                         Yes
                                     </button>
                                     <button
-                                        className="px-4 py-2 bg-red-500 text-white rounded"
+                                        className="px-4 py-2 text-white bg-red-500 rounded"
                                         onClick={() => setShowConfirm(false)}
                                     >
                                         No
