@@ -8,7 +8,7 @@ import Footer from "../../components/Landingpage/Footer"
 import WelcomeModal from "../../components/WelcomeModal"
 import Image from "next/image"
 import { ethers } from "ethers"
-import contractABI from "../../../artifacts/contracts/ VoyageTreasureHunt.sol/VoyageTreasureHunt.json"
+import contractABI from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHunt.json"
 
 const TreasureHuntDetail = () => {
     const router = useRouter()
@@ -56,7 +56,7 @@ const TreasureHuntDetail = () => {
                 setContract(contract)
             }
         }
-    }, [])
+    }, [contractAddress]) // Added contractAddress as a dependency
 
     const handleGuessSubmit = async (e) => {
         e.preventDefault()

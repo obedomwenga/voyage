@@ -21,7 +21,6 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
             style: "mapbox://styles/mapbox/streets-v11",
             center: [0, 0], // Centered on the world map
             zoom: 2, // Lower zoom level for a broader view
-        })
 
         // Change cursor to selection mode when hovering over the map
         map.current.on("mouseenter", () => {
@@ -31,6 +30,7 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
         map.current.on("mouseleave", () => {
             map.current.getCanvas().style.cursor = "" // Reset cursor when leaving the map
         })
+
 
         // Add click event listener
         map.current.on("click", async (e) => {
