@@ -1,6 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { ethers } from "ethers"
 import axios from "axios"
+import Image from "next/image"
 import voyageAbi from "../../../artifacts/contracts/VoyageTreasureHunt.sol/VoyageTreasureHuntv6.json"
 
 const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) => {
@@ -20,14 +21,13 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
     }))
 
     useEffect(() => {
-        
         // Update the answer for the active hunt index when the locationName changes
         if (locationName) {
             const newAnswers = [...answers]
             newAnswers[activeHuntIndex] = locationName
             setAnswers(newAnswers)
         }
-    }, [locationName])
+    }, [locationName, activeHuntIndex, answers])
 
     const handleFileUpload = async (e, index) => {
         const file = e.target.files[0]
@@ -160,9 +160,11 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
                             />
                             {imageUrls[index] && (
                                 <div className="mt-4">
-                                    <img
+                                    <Image
                                         src={imageUrls[index]}
                                         alt="Clue"
+                                        width={320}
+                                        height={240}
                                         className="w-full h-auto rounded-md"
                                     />
                                 </div>
@@ -203,5 +205,7 @@ const HuntForm = forwardRef(({ handleNewHunt, coordinates, locationName }, ref) 
         </div>
     )
 })
+
+HuntForm.displayName = "HuntForm" // Set the display name for debugging
 
 export default HuntForm
