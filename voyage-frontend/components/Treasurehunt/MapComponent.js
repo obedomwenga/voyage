@@ -16,86 +16,74 @@ const MapComponent = ({
     const map = useRef(null)
     const marker = useRef(null)
 
-    const geocoder = MapboxGeocoder({
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
-    })
-
     useEffect(() => {
-        if (map.current) return
-
         mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-        map.current = new mapboxgl.Map({
-            container: mapContainer.current,
-            style: "mapbox://styles/mapbox/streets-v11",
-            center: [0, 0],
-            zoom: 2,
+
+        // Initialize the geocoder inside the useEffect
+        const geocoder = MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
         })
 
-        map.current.on("click", async (e) => {
-            const { lng, lat } = e.lngLat
+        // Initialize the map
+        if (!map.current) {
+            map.current = new mapboxgl.Map({
+                container: mapContainer.current,
+                style: "mapbox://styles/mapbox/streets-v11",
+                center: [0, 0],
+                zoom: 2,
+            })
 
-            try {
-                const response = await geocoder
-                    .reverseGeocode({
-                        query: [lng, lat],
-                        types: [
-                            "poi.landmark",
-                            "poi",
-                            "place",
-                            "locality",
-                            "neighborhood",
-                            "country",
-                        ],
-                    })
-                    .send()
+            // Add click event listener
+            map.current.on("click", async (e) => {
+                const { lng, lat } = e.lngLat
+                const zoomLevel = map.current.getZoom()
 
-                let locationName = "Unknown location"
-                if (response.body.features.length > 0) {
-                    // Prioritize landmarks or POIs over general place names
-                    const landmarkFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("poi.landmark")
-                    )
-                    const poiFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("poi")
-                    )
-                    const placeFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("place")
-                    )
+                let types = ["place"] // Default type
 
-                    if (landmarkFeature) {
-                        locationName = landmarkFeature.text
-                    } else if (poiFeature) {
-                        locationName = poiFeature.text
-                    } else if (placeFeature) {
-                        locationName = placeFeature.text
-                    }
-
-                    // Add context (like city or region) to the location name
-                    const context = response.body.features[0].context || []
-                    const contextText = context.map((c) => c.text).join(", ")
-                    if (contextText) {
-                        locationName = `${locationName}, ${contextText}`
-                    }
+                // Adjust types based on zoom level
+                if (zoomLevel < 5) {
+                    types = ["country"]
+                } else if (zoomLevel >= 5 && zoomLevel < 10) {
+                    types = ["place"]
+                } else if (zoomLevel >= 10 && zoomLevel < 15) {
+                    types = ["locality", "neighborhood"]
+                } else {
+                    types = ["poi.landmark", "poi"]
                 }
 
-                setCountryName(locationName) // Update the location name state
-            } catch (error) {
-                console.error("Error fetching location name:", error)
-                setCountryName("Error fetching location")
-            }
+                try {
+                    const response = await geocoder
+                        .reverseGeocode({
+                            query: [lng, lat],
+                            types: types,
+                        })
+                        .send()
 
-            setGuessLocation({ lng, lat })
-            setShowConfirm(true)
+                    let locationName = "Unknown location"
+                    if (response.body.features.length > 0) {
+                        // Extract the location name based on zoom level
+                        locationName = response.body.features[0].text || "Unknown location"
+                    }
 
-            // Remove previous marker if it exists
-            if (marker.current) {
-                marker.current.remove()
-            }
+                    setCountryName(locationName) // Update the location name state
+                } catch (error) {
+                    console.error("Error fetching location name:", error)
+                    setCountryName("Error fetching location")
+                }
 
-            // Create a new marker at the clicked location
-            marker.current = new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map.current)
-        })
-    }, [geocoder, setGuessLocation, setShowConfirm, setCountryName])
+                setGuessLocation({ lng, lat })
+                setShowConfirm(true)
+
+                // Remove previous marker if it exists
+                if (marker.current) {
+                    marker.current.remove()
+                }
+
+                // Create a new marker at the clicked location
+                marker.current = new mapboxgl.Marker().setLngLat([lng, lat]).addTo(map.current)
+            })
+        }
+    }, [setGuessLocation, setShowConfirm, setCountryName])
 
     // Clear and add new markers logic
     useEffect(() => {
