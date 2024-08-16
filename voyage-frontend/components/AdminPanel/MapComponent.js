@@ -1,21 +1,19 @@
-"use client";
+"use client"
 
-import React, { useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import MapboxGeocoder from "@mapbox/mapbox-sdk/services/geocoding";
+import React, { useEffect, useRef } from "react"
+import mapboxgl from "mapbox-gl"
+import MapboxGeocoder from "@mapbox/mapbox-sdk/services/geocoding"
 
 const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
-    const mapContainerRef = useRef(null);
-    const map = useRef(null);
-    const marker = useRef(null);
+    const mapContainerRef = useRef(null)
+    const map = useRef(null)
+    const marker = useRef(null)
 
     // Initialize geocoding service
-    const geocoder = MapboxGeocoder({
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    });
+    const geocoder = MapboxGeocoder({ accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN })
 
     useEffect(() => {
-        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 
         // Initialize the map with a lower zoom level
         map.current = new mapboxgl.Map({
@@ -23,75 +21,78 @@ const MapComponent = ({ setCoordinates, setLocationName, handleMapClick }) => {
             style: "mapbox://styles/mapbox/streets-v11",
             center: [0, 0], // Centered on the world map
             zoom: 2, // Lower zoom level for a broader view
-        });
+        })
+
+        // Change cursor to selection mode when hovering over the map
+        map.current.on("mouseenter", () => {
+            map.current.getCanvas().style.cursor = "crosshair" // Change this to your preferred cursor style
+        })
+
+        map.current.on("mouseleave", () => {
+            map.current.getCanvas().style.cursor = "" // Reset cursor when leaving the map
+        })
 
         // Add click event listener
         map.current.on("click", async (e) => {
-            const coords = [e.lngLat.lng, e.lngLat.lat];
-            setCoordinates(coords);
+            const coords = [e.lngLat.lng, e.lngLat.lat]
+            setCoordinates(coords)
 
             // Remove previous marker if it exists
             if (marker.current) {
-                marker.current.remove();
+                marker.current.remove()
             }
 
             // Create a new marker at the clicked location
-            marker.current = new mapboxgl.Marker().setLngLat(coords).addTo(map.current);
+            marker.current = new mapboxgl.Marker().setLngLat(coords).addTo(map.current)
 
-            // Reverse geocode to get location name (cities, towns, points of interest, landmarks)
+            const zoomLevel = map.current.getZoom()
+
+            // Reverse geocode to get location name based on zoom level
             try {
+                let types
+                if (zoomLevel < 6) {
+                    // If zoomed out, get country names
+                    types = ["country"]
+                } else if (zoomLevel >= 6 && zoomLevel < 10) {
+                    // If zoomed in moderately, get city names
+                    types = ["place"]
+                } else if (zoomLevel >= 10 && zoomLevel < 14) {
+                    // If zoomed in closer, get neighborhood and locality names
+                    types = ["locality", "neighborhood"]
+                } else {
+                    // If zoomed in very close, get detailed information like landmarks and POIs
+                    types = ["poi.landmark", "poi"]
+                }
+
                 const response = await geocoder
                     .reverseGeocode({
                         query: coords,
-                        types: ["poi.landmark", "poi", "place", "locality", "neighborhood"], // Prioritize landmarks and POIs
+                        types, // Dynamically use different types based on zoom level
                     })
-                    .send();
+                    .send()
 
-                let locationName = "Unknown location";
+                let locationName = "Unknown location"
 
                 if (response.body.features.length > 0) {
-                    // Find the most specific feature (landmark or POI)
-                    const landmarkFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("poi.landmark")
-                    );
-                    const poiFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("poi")
-                    );
-                    const placeFeature = response.body.features.find((feature) =>
-                        feature.place_type.includes("place")
-                    );
-
-                    if (landmarkFeature) {
-                        locationName = landmarkFeature.text;
-                    } else if (poiFeature) {
-                        locationName = poiFeature.text;
-                    } else if (placeFeature) {
-                        locationName = placeFeature.text;
-                    }
-
-                    // Add context (like city or region) to the location name
-                    const context = response.body.features[0].context || [];
-                    const contextText = context.map((c) => c.text).join(", ");
-                    if (contextText) {
-                        locationName = `${locationName}, ${contextText}`;
-                    }
+                    locationName = response.body.features[0].text // Use only the name, not the full address
                 }
 
-                setLocationName(locationName);
-                handleMapClick(locationName, coords); // Call the handleMapClick function
+                // Set the name of the location (just the name, no address details)
+                setLocationName(locationName)
+                handleMapClick(locationName, coords) // Call the handleMapClick function
             } catch (error) {
-                console.error("Error fetching location name:", error);
-                setLocationName("Error fetching location");
+                console.error("Error fetching location name:", error)
+                setLocationName("Error fetching location")
             }
-        });
+        })
 
         // Cleanup on unmount
         return () => {
-            if (map.current) map.current.remove();
-        };
-    }, [setCoordinates, setLocationName, handleMapClick]);
+            if (map.current) map.current.remove()
+        }
+    }, [setCoordinates, setLocationName, handleMapClick])
 
-    return <div ref={mapContainerRef} className="w-full h-full"></div>;
-};
+    return <div ref={mapContainerRef} className="w-full h-full"></div>
+}
 
-export default MapComponent;
+export default MapComponent
